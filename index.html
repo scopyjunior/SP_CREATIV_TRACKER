@@ -239,7 +239,7 @@
 
         const { createApp, ref, reactive, computed, onMounted } = Vue;
 
-        // Firebase Setup using environment variables or fallback to provided config
+        // Firebase Setup
         const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {
             apiKey: "AIzaSyA9ErQCRNaHA6eXr4qmm0tfDrf3WfoJnhY",
             authDomain: "sp-creativ-tracker.firebaseapp.com",
@@ -257,7 +257,7 @@
         createApp({
             setup() {
                 const user = ref(null);
-                const authorized = ref(false); // Track internal app authorization
+                const authorized = ref(false);
                 const authLoading = ref(false);
                 const authError = ref('');
                 const authForm = reactive({ email: '', pass: '' });
@@ -275,14 +275,17 @@
                 const priceForm = reactive({});
                 const statTimeframe = ref('All');
 
-                // Mandatory initial auth (Rule 3)
                 onMounted(async () => {
                     const initAuth = async () => {
                         try {
                             if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
                                 await signInWithCustomToken(auth, __initial_auth_token);
                             } else {
-                                await signInAnonymously(auth);
+                                // Important: Wait for Firebase to check if the user is ALREADY logged in via email
+                                await auth.authStateReady();
+                                if (!auth.currentUser) {
+                                    await signInAnonymously(auth);
+                                }
                             }
                         } catch (e) {
                             console.error("Initial Auth Error:", e);
@@ -292,13 +295,11 @@
 
                     onAuthStateChanged(auth, (u) => {
                         user.value = u;
-                        // If user has an email, they are considered authorized for the app UI
                         if (u && !u.isAnonymous) {
                             authorized.value = true;
                             userEmail.value = u.email;
                             startSync();
                         } else if (u && u.isAnonymous) {
-                            // System-level auth complete but app UI still needs login
                             authorized.value = false;
                             loading.value = false;
                         } else {
@@ -309,10 +310,8 @@
                 });
 
                 const startSync = () => {
-                    // Guard every Firestore operation (Rule 3)
                     if (!auth.currentUser) return;
 
-                    // Sync Sites - Use strict path (Rule 1)
                     onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'sites'), (snap) => {
                         sites.value = snap.docs.map(d => ({ id: d.id, ...d.data() }));
                         sites.value.forEach(s => { if(!priceForm[s.id]) priceForm[s.id] = { desc: '', qty: 0, unit: 'm2', price: 0 }; });
@@ -322,12 +321,10 @@
                         loading.value = false;
                     });
 
-                    // Sync Employees - Use strict path (Rule 1)
                     onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'employees'), (snap) => {
                         employees.value = snap.docs.map(d => ({ id: d.id, ...d.data() }));
                     }, (err) => console.error("Employees Sync Error:", err));
 
-                    // Sync Logs - Use strict path (Rule 1)
                     onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'logs'), (snap) => {
                         logs.value = snap.docs.map(d => ({ id: d.id, ...d.data() }));
                     }, (err) => console.error("Logs Sync Error:", err));
@@ -337,7 +334,6 @@
                     authLoading.value = true;
                     authError.value = '';
                     try { 
-                        // Sign in with email will replace the anonymous session
                         await signInWithEmailAndPassword(auth, authForm.email, authForm.pass); 
                     } catch (e) { 
                         authError.value = 'Invalid Login Credentials'; 
@@ -348,7 +344,6 @@
 
                 const handleLogout = async () => {
                     await signOut(auth);
-                    // Re-authenticate anonymously to satisfy environment requirements
                     await signInAnonymously(auth);
                 };
 
@@ -379,7 +374,7 @@
                         }
                         form.value.selected = [];
                     } catch (e) { 
-                        console.error("Save Error:", e); 
+                        alert("Error saving labor: " + e.message); 
                     } finally { 
                         loading.value = false; 
                     }
@@ -388,7 +383,11 @@
                 const deleteLog = async (id) => { 
                     if (!auth.currentUser) return;
                     if(confirm('Permanently delete this labor entry?')) {
-                        await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'logs', id));
+                        try {
+                            await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'logs', id));
+                        } catch (e) {
+                            alert("Error deleting log: " + e.message);
+                        }
                     }
                 };
 
@@ -398,37 +397,75 @@
                     if (!auth.currentUser) return;
                     const s = sites.value.find(x => x.id === sid);
                     const items = [...(s.pricingItems || []), { id: Date.now(), ...priceForm[sid] }];
-                    await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'sites', sid), { pricingItems: items });
-                    priceForm[sid].desc = ''; priceForm[sid].qty = 0;
+                    try {
+                        await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'sites', sid), { pricingItems: items });
+                        priceForm[sid].desc = ''; priceForm[sid].qty = 0;
+                    } catch (e) {
+                        alert("Error adding item: " + e.message);
+                    }
                 };
 
                 const removeItemFromSite = async (sid, iid) => {
                     if (!auth.currentUser) return;
                     const s = sites.value.find(x => x.id === sid);
                     const items = s.pricingItems.filter(i => i.id !== iid);
-                    await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'sites', sid), { pricingItems: items });
+                    try {
+                        await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'sites', sid), { pricingItems: items });
+                    } catch (e) {
+                        alert("Error removing item: " + e.message);
+                    }
                 };
 
                 const togglePaid = async (sid) => {
                     if (!auth.currentUser) return;
                     const s = sites.value.find(x => x.id === sid);
-                    await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'sites', sid), { isPaid: !s.isPaid });
+                    try {
+                        await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'sites', sid), { isPaid: !s.isPaid });
+                    } catch (e) {
+                        alert("Error updating payment status: " + e.message);
+                    }
                 };
 
+                // Added Try/Catch with Alerts for explicit error visibility
                 const addSite = async () => { 
                     if (!auth.currentUser || !news.value.site) return; 
-                    await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'sites'), { name: news.value.site, isPaid: false, pricingItems: [] }); 
-                    news.value.site = ''; 
+                    try {
+                        await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'sites'), { name: news.value.site, isPaid: false, pricingItems: [] }); 
+                        news.value.site = ''; 
+                    } catch (e) {
+                        alert("Error adding site: " + e.message);
+                    }
                 };
 
                 const addEmp = async () => { 
                     if (!auth.currentUser || !news.value.emp) return; 
-                    await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'employees'), { name: news.value.emp }); 
-                    news.value.emp = ''; 
+                    try {
+                        await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'employees'), { name: news.value.emp }); 
+                        news.value.emp = ''; 
+                    } catch (e) {
+                        alert("Error adding worker: " + e.message);
+                    }
                 };
 
-                const removeSite = async (id) => { if(confirm('Delete site?')) await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'sites', id)); };
-                const removeEmp = async (id) => { if(confirm('Delete worker?')) await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'employees', id)); };
+                const removeSite = async (id) => { 
+                    if(confirm('Delete site?')) {
+                        try {
+                            await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'sites', id)); 
+                        } catch(e) {
+                            alert("Error removing site: " + e.message);
+                        }
+                    }
+                };
+
+                const removeEmp = async (id) => { 
+                    if(confirm('Delete worker?')) {
+                        try {
+                            await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'employees', id)); 
+                        } catch(e) {
+                            alert("Error removing worker: " + e.message);
+                        }
+                    }
+                };
 
                 const isDateInTimeframe = (dateStr) => {
                     if (statTimeframe.value === 'All') return true;
