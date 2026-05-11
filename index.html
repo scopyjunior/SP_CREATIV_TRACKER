@@ -20,7 +20,7 @@
     <div id="app" v-cloak class="flex flex-col min-h-screen">
         
         <!-- LOGIN SCREEN -->
-        <div v-if="!user" class="fixed inset-0 bg-slate-900 z-[100] flex items-center justify-center p-6">
+        <div v-if="!authorized" class="fixed inset-0 bg-slate-900 z-[100] flex items-center justify-center p-6">
             <div class="bg-white w-full max-w-sm rounded-[3rem] p-8 shadow-2xl">
                 <div class="text-center mb-8">
                     <h1 class="text-2xl font-black text-blue-600 italic uppercase">SP CREATIV</h1>
@@ -38,12 +38,12 @@
         </div>
 
         <!-- APP CONTENT -->
-        <template v-if="user">
+        <template v-if="authorized">
             <!-- Header -->
             <header class="bg-white border-b px-6 py-4 pt-12 sticky top-0 z-30 flex justify-between items-center shadow-sm">
                 <div>
                     <h1 class="text-xl font-black text-blue-600 italic uppercase leading-none">SP CREATIV</h1>
-                    <p class="text-[9px] text-slate-400 font-bold uppercase mt-1">Active: {{ (user.email || 'Admin').split('@')[0] }}</p>
+                    <p class="text-[9px] text-slate-400 font-bold uppercase mt-1">Active: {{ (userEmail || 'Admin').split('@')[0] }}</p>
                 </div>
                 <div class="flex items-center gap-3">
                     <div v-if="loading" class="animate-spin h-3 w-3 border-2 border-blue-600 border-t-transparent rounded-full"></div>
@@ -233,14 +233,14 @@
     </div>
 
     <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, collection, doc, addDoc, updateDoc, deleteDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app-js.js";
+        import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut, signInWithCustomToken, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth-js.js";
+        import { getFirestore, collection, doc, addDoc, updateDoc, deleteDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore-js.js";
 
         const { createApp, ref, reactive, computed, onMounted } = Vue;
 
-        // Firebase Configuration provided by user
-        const firebaseConfig = {
+        // Firebase Setup using environment variables or fallback to provided config
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {
             apiKey: "AIzaSyA9ErQCRNaHA6eXr4qmm0tfDrf3WfoJnhY",
             authDomain: "sp-creativ-tracker.firebaseapp.com",
             projectId: "sp-creativ-tracker",
@@ -252,14 +252,17 @@
         const fbApp = initializeApp(firebaseConfig);
         const auth = getAuth(fbApp);
         const db = getFirestore(fbApp);
-        const appId = 'sp-creativ-final'; // Internal directory for Firestore
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'sp-creativ-final';
 
         createApp({
             setup() {
                 const user = ref(null);
+                const authorized = ref(false); // Track internal app authorization
                 const authLoading = ref(false);
                 const authError = ref('');
                 const authForm = reactive({ email: '', pass: '' });
+                const userEmail = ref('');
+                
                 const view = ref('log');
                 const loading = ref(true);
 
@@ -272,30 +275,59 @@
                 const priceForm = reactive({});
                 const statTimeframe = ref('All');
 
+                // Mandatory initial auth (Rule 3)
                 onMounted(async () => {
+                    const initAuth = async () => {
+                        try {
+                            if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                                await signInWithCustomToken(auth, __initial_auth_token);
+                            } else {
+                                await signInAnonymously(auth);
+                            }
+                        } catch (e) {
+                            console.error("Initial Auth Error:", e);
+                        }
+                    };
+                    await initAuth();
+
                     onAuthStateChanged(auth, (u) => {
                         user.value = u;
-                        if(u) startSync();
-                        else loading.value = false;
+                        // If user has an email, they are considered authorized for the app UI
+                        if (u && !u.isAnonymous) {
+                            authorized.value = true;
+                            userEmail.value = u.email;
+                            startSync();
+                        } else if (u && u.isAnonymous) {
+                            // System-level auth complete but app UI still needs login
+                            authorized.value = false;
+                            loading.value = false;
+                        } else {
+                            authorized.value = false;
+                            loading.value = false;
+                        }
                     });
                 });
 
                 const startSync = () => {
+                    // Guard every Firestore operation (Rule 3)
                     if (!auth.currentUser) return;
 
-                    // Sync Sites
+                    // Sync Sites - Use strict path (Rule 1)
                     onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'sites'), (snap) => {
                         sites.value = snap.docs.map(d => ({ id: d.id, ...d.data() }));
                         sites.value.forEach(s => { if(!priceForm[s.id]) priceForm[s.id] = { desc: '', qty: 0, unit: 'm2', price: 0 }; });
                         loading.value = false;
-                    }, (err) => console.error("Sites Sync Error:", err));
+                    }, (err) => {
+                        console.error("Sites Sync Error:", err);
+                        loading.value = false;
+                    });
 
-                    // Sync Employees
+                    // Sync Employees - Use strict path (Rule 1)
                     onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'employees'), (snap) => {
                         employees.value = snap.docs.map(d => ({ id: d.id, ...d.data() }));
                     }, (err) => console.error("Employees Sync Error:", err));
 
-                    // Sync Logs
+                    // Sync Logs - Use strict path (Rule 1)
                     onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'logs'), (snap) => {
                         logs.value = snap.docs.map(d => ({ id: d.id, ...d.data() }));
                     }, (err) => console.error("Logs Sync Error:", err));
@@ -305,6 +337,7 @@
                     authLoading.value = true;
                     authError.value = '';
                     try { 
+                        // Sign in with email will replace the anonymous session
                         await signInWithEmailAndPassword(auth, authForm.email, authForm.pass); 
                     } catch (e) { 
                         authError.value = 'Invalid Login Credentials'; 
@@ -313,14 +346,17 @@
                     }
                 };
 
-                const handleLogout = () => signOut(auth);
+                const handleLogout = async () => {
+                    await signOut(auth);
+                    // Re-authenticate anonymously to satisfy environment requirements
+                    await signInAnonymously(auth);
+                };
 
                 const toggleEmp = (id) => {
                     const i = form.value.selected.indexOf(id);
                     if (i > -1) form.value.selected.splice(i, 1); else form.value.selected.push(id);
                 };
 
-                // Helper to get total hours logged for a worker on the selected date
                 const getTodayHours = (eid) => {
                     return logs.value
                         .filter(l => l.eid === eid && l.date === form.value.date)
@@ -328,7 +364,7 @@
                 };
 
                 const saveLabor = async () => {
-                    if (!user.value) return;
+                    if (!auth.currentUser) return;
                     loading.value = true;
                     const col = collection(db, 'artifacts', appId, 'public', 'data', 'logs');
                     
@@ -350,7 +386,7 @@
                 };
 
                 const deleteLog = async (id) => { 
-                    if (!user.value) return;
+                    if (!auth.currentUser) return;
                     if(confirm('Permanently delete this labor entry?')) {
                         await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'logs', id));
                     }
@@ -359,7 +395,7 @@
                 const calculateSiteTotal = (sid) => (sites.value.find(x => x.id === sid)?.pricingItems || []).reduce((a, b) => a + (b.qty * b.price), 0);
 
                 const addItemToSite = async (sid) => {
-                    if (!user.value) return;
+                    if (!auth.currentUser) return;
                     const s = sites.value.find(x => x.id === sid);
                     const items = [...(s.pricingItems || []), { id: Date.now(), ...priceForm[sid] }];
                     await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'sites', sid), { pricingItems: items });
@@ -367,32 +403,32 @@
                 };
 
                 const removeItemFromSite = async (sid, iid) => {
-                    if (!user.value) return;
+                    if (!auth.currentUser) return;
                     const s = sites.value.find(x => x.id === sid);
                     const items = s.pricingItems.filter(i => i.id !== iid);
                     await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'sites', sid), { pricingItems: items });
                 };
 
                 const togglePaid = async (sid) => {
-                    if (!user.value) return;
+                    if (!auth.currentUser) return;
                     const s = sites.value.find(x => x.id === sid);
                     await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'sites', sid), { isPaid: !s.isPaid });
                 };
 
                 const addSite = async () => { 
-                    if (!user.value || !news.value.site) return; 
+                    if (!auth.currentUser || !news.value.site) return; 
                     await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'sites'), { name: news.value.site, isPaid: false, pricingItems: [] }); 
                     news.value.site = ''; 
                 };
 
                 const addEmp = async () => { 
-                    if (!user.value || !news.value.emp) return; 
+                    if (!auth.currentUser || !news.value.emp) return; 
                     await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'employees'), { name: news.value.emp }); 
                     news.value.emp = ''; 
                 };
 
-                const removeSite = async (id) => { if(confirm('Delete site and all related data?')) await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'sites', id)); };
-                const removeEmp = async (id) => { if(confirm('Remove worker from roster?')) await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'employees', id)); };
+                const removeSite = async (id) => { if(confirm('Delete site?')) await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'sites', id)); };
+                const removeEmp = async (id) => { if(confirm('Delete worker?')) await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'employees', id)); };
 
                 const isDateInTimeframe = (dateStr) => {
                     if (statTimeframe.value === 'All') return true;
@@ -408,7 +444,7 @@
                 const getSiteHours = (sid) => logs.value.filter(l => l.sid === sid && isDateInTimeframe(l.date)).reduce((a, b) => a + b.h, 0);
 
                 return { 
-                    user, authForm, authLoading, authError, handleLogin, handleLogout, view, sites, employees, logs, form, news, priceForm, loading, statTimeframe,
+                    user, authorized, userEmail, authForm, authLoading, authError, handleLogin, handleLogout, view, sites, employees, logs, form, news, priceForm, loading, statTimeframe,
                     toggleEmp, saveLabor, deleteLog, addItemToSite, removeItemFromSite, togglePaid, addSite, addEmp, removeSite, removeEmp,
                     calculateSiteTotal, getSiteHours, getTodayHours,
                     statsEmpHours: computed(() => {
