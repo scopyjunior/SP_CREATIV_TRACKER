@@ -1,1 +1,440 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <title>SP CREATIV | Secure Cloud</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <style>
+        [v-cloak] { display: none; }
+        body { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
+        .active-nav { color: #2563eb; transform: scale(1.1); }
+        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+        .safe-bottom { padding-bottom: env(safe-area-inset-bottom, 24px); }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-900 font-sans select-none">
+    <div id="app" v-cloak class="flex flex-col min-h-screen">
+        
+        <!-- LOGIN SCREEN -->
+        <div v-if="!user" class="fixed inset-0 bg-slate-900 z-[100] flex items-center justify-center p-6">
+            <div class="bg-white w-full max-w-sm rounded-[3rem] p-8 shadow-2xl">
+                <div class="text-center mb-8">
+                    <h1 class="text-2xl font-black text-blue-600 italic uppercase">SP CREATIV</h1>
+                    <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Authorized Access Only</p>
+                </div>
+                <div class="space-y-4">
+                    <input v-model="authForm.email" type="email" placeholder="Email" class="w-full bg-slate-100 p-4 rounded-2xl border-0 font-bold outline-none">
+                    <input v-model="authForm.pass" type="password" placeholder="Password" class="w-full bg-slate-100 p-4 rounded-2xl border-0 font-bold outline-none">
+                    <button @click="handleLogin" class="w-full bg-blue-600 text-white font-black py-4 rounded-2xl shadow-lg active:scale-95 transition-all">
+                        {{ authLoading ? 'VERIFYING...' : 'LOGIN' }}
+                    </button>
+                    <p v-if="authError" class="text-red-500 text-[10px] font-black text-center uppercase mt-2">{{ authError }}</p>
+                </div>
+            </div>
+        </div>
 
+        <!-- APP CONTENT -->
+        <template v-if="user">
+            <!-- Header -->
+            <header class="bg-white border-b px-6 py-4 pt-12 sticky top-0 z-30 flex justify-between items-center shadow-sm">
+                <div>
+                    <h1 class="text-xl font-black text-blue-600 italic uppercase leading-none">SP CREATIV</h1>
+                    <p class="text-[9px] text-slate-400 font-bold uppercase mt-1">Active: {{ (user.email || 'Admin').split('@')[0] }}</p>
+                </div>
+                <div class="flex items-center gap-3">
+                    <div v-if="loading" class="animate-spin h-3 w-3 border-2 border-blue-600 border-t-transparent rounded-full"></div>
+                    <button @click="handleLogout" class="text-[9px] font-black bg-slate-100 px-3 py-1.5 rounded-full uppercase active:scale-90 transition-transform">Logout</button>
+                </div>
+            </header>
+
+            <main class="flex-1 p-4 pb-32">
+                
+                <!-- VIEW: LOG LABOR -->
+                <div v-if="view === 'log'" class="space-y-4">
+                    <div class="bg-white p-6 rounded-[2.5rem] shadow-sm border border-slate-100">
+                        <div class="grid grid-cols-2 gap-4 mb-4">
+                            <div class="space-y-1">
+                                <label class="text-[10px] font-black text-slate-400 uppercase">Date</label>
+                                <input type="date" v-model="form.date" class="w-full bg-slate-50 rounded-2xl p-4 border-0 text-sm font-bold outline-none">
+                            </div>
+                            <div class="space-y-1">
+                                <label class="text-[10px] font-black text-slate-400 uppercase">Hours to Add</label>
+                                <input type="number" step="0.5" v-model="form.hours" class="w-full bg-slate-50 rounded-2xl p-4 border-0 text-sm font-bold outline-none">
+                            </div>
+                        </div>
+                        
+                        <div class="space-y-1 mb-6">
+                            <label class="text-[10px] font-black text-slate-400 uppercase">Project Site</label>
+                            <select v-model="form.siteId" class="w-full bg-slate-50 rounded-2xl p-4 border-0 font-bold text-sm outline-none appearance-none">
+                                <option value="">Select Site...</option>
+                                <option v-for="s in sites" :key="s.id" :value="s.id">{{s.name}}</option>
+                            </select>
+                        </div>
+
+                        <div class="space-y-2">
+                            <label class="text-[10px] font-black text-slate-400 uppercase">Select Crew</label>
+                            <div class="grid grid-cols-1 gap-2 max-h-60 overflow-y-auto pr-1 custom-scrollbar">
+                                <button v-for="e in employees" @click="toggleEmp(e.id)" 
+                                     :class="form.selected.includes(e.id) ? 'bg-blue-600 text-white shadow-lg' : 'bg-slate-50 text-slate-500'"
+                                     class="p-4 rounded-2xl font-bold text-left flex justify-between items-center transition-all border border-transparent">
+                                    <div class="flex flex-col">
+                                        <span>{{e.name}}</span>
+                                        <span class="text-[8px] uppercase opacity-70">
+                                            Daily total: {{ getTodayHours(e.id) }}h
+                                        </span>
+                                    </div>
+                                    <span v-if="form.selected.includes(e.id)">✓</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <button @click="saveLabor" :disabled="!form.siteId || !form.selected.length || loading"
+                                class="w-full bg-blue-600 disabled:bg-slate-100 text-white font-black py-5 rounded-[2rem] mt-8 shadow-xl active:scale-95 transition-all">
+                            {{ loading ? 'SYNCING...' : 'SYNC ENTRIES (' + form.selected.length + ')' }}
+                        </button>
+                    </div>
+                </div>
+
+                <!-- VIEW: JOBS (Revenue) -->
+                <div v-if="view === 'jobs'" class="space-y-6">
+                    <div v-for="site in sites" :key="site.id" class="bg-white rounded-[2.5rem] border border-slate-100 overflow-hidden shadow-sm">
+                        <div class="p-5 flex justify-between items-center" :class="site.isPaid ? 'bg-emerald-500 text-white' : 'bg-slate-900 text-white'">
+                            <span class="font-black uppercase text-sm tracking-widest">{{ site.name }}</span>
+                            <span class="text-xl font-black">${{ calculateSiteTotal(site.id).toLocaleString() }}</span>
+                        </div>
+                        <div class="p-5 space-y-4">
+                            <button @click="togglePaid(site.id)" :class="site.isPaid ? 'bg-emerald-100 text-emerald-700' : 'bg-orange-50 text-orange-600'" class="w-full py-3 rounded-2xl font-black text-xs uppercase tracking-widest">
+                                {{ site.isPaid ? '🟢 PAID' : '🔴 UNPAID' }}
+                            </button>
+                            
+                            <div class="space-y-2">
+                                <div v-for="item in (site.pricingItems || [])" :key="item.id" class="flex justify-between items-center border-b border-slate-50 pb-2">
+                                    <div class="flex flex-col">
+                                        <span class="text-xs font-bold">{{item.desc}}</span>
+                                        <span class="text-[9px] text-slate-400 font-black uppercase">{{item.qty}}{{item.unit}} x ${{item.price}}</span>
+                                    </div>
+                                    <div class="flex items-center gap-3">
+                                        <span class="text-sm font-black text-slate-800">${{(item.qty * item.price).toLocaleString()}}</span>
+                                        <button @click="removeItemFromSite(site.id, item.id)" class="text-red-300">✕</button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="bg-slate-50 p-4 rounded-3xl space-y-2">
+                                <input v-model="priceForm[site.id].desc" placeholder="Work (e.g. Living Room)" class="w-full bg-white p-3 rounded-xl text-xs font-bold outline-none border-0 shadow-sm">
+                                <div class="grid grid-cols-3 gap-2">
+                                    <input v-model="priceForm[site.id].qty" type="number" placeholder="Qty" class="bg-white p-3 rounded-xl text-xs font-bold border-0 shadow-sm">
+                                    <input v-model="priceForm[site.id].unit" placeholder="m2" class="bg-white p-3 rounded-xl text-xs font-bold border-0 uppercase text-center shadow-sm">
+                                    <input v-model="priceForm[site.id].price" type="number" placeholder="Price" class="bg-white p-3 rounded-xl text-xs font-bold border-0 shadow-sm">
+                                </div>
+                                <button @click="addItemToSite(site.id)" class="w-full bg-slate-800 text-white font-black py-3 rounded-xl text-[10px] uppercase mt-1">Add Revenue Item</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- VIEW: TOTALS -->
+                <div v-if="view === 'stats'" class="space-y-4">
+                    <div class="flex p-1 bg-slate-200 rounded-2xl sticky top-28 z-10 shadow-sm">
+                        <button v-for="t in ['Week', 'Month', 'All']" @click="statTimeframe = t" :class="statTimeframe === t ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500'" class="flex-1 py-3 text-xs font-black uppercase rounded-xl transition-all">{{t}}</button>
+                    </div>
+
+                    <div class="bg-slate-900 p-6 rounded-[2.5rem] shadow-xl text-white">
+                        <h3 class="text-[10px] font-black text-slate-500 uppercase mb-4 text-center tracking-widest">Revenue Status</h3>
+                        <div class="grid grid-cols-2 gap-4 text-center">
+                            <div>
+                                <p class="text-[9px] font-black text-emerald-400 uppercase">Paid</p>
+                                <p class="text-xl font-black">${{ statsRevenue.paid.toLocaleString() }}</p>
+                            </div>
+                            <div>
+                                <p class="text-[9px] font-black text-orange-400 uppercase">Owed</p>
+                                <p class="text-xl font-black">${{ statsRevenue.unpaid.toLocaleString() }}</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-white p-6 rounded-[2.5rem] border border-slate-100 shadow-sm">
+                        <h3 class="text-xs font-black text-slate-400 uppercase mb-4 tracking-widest">Total Hours per Site</h3>
+                        <div v-for="site in sites" :key="site.id" class="py-3 border-b border-slate-50 last:border-0 flex justify-between items-center">
+                            <span class="font-bold text-sm text-slate-700">{{ site.name }}</span>
+                            <span class="text-blue-600 font-black text-xs bg-blue-50 px-3 py-1 rounded-full">{{ getSiteHours(site.id) }}h</span>
+                        </div>
+                    </div>
+
+                    <div class="bg-white p-6 rounded-[2.5rem] border border-slate-100">
+                        <h3 class="text-xs font-black text-slate-400 uppercase mb-4 tracking-widest">Crew Payroll (Period)</h3>
+                        <div v-for="(h, name) in statsEmpHours" :key="name" class="py-3 border-b border-slate-50 last:border-0 flex justify-between items-center">
+                            <span class="font-bold text-sm text-slate-700">{{ name }}</span>
+                            <span class="text-blue-600 font-black text-sm">{{ h }}h</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- VIEW: HISTORY -->
+                <div v-if="view === 'history'" class="space-y-3">
+                    <div v-for="log in sortedLogs" :key="log.id" class="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex justify-between items-center">
+                        <div class="space-y-1">
+                            <div class="flex items-center gap-1.5">
+                                <span class="text-[9px] font-black text-blue-600 bg-blue-50 px-2 py-0.5 rounded uppercase">{{ log.date }}</span>
+                                <span class="text-[9px] font-black text-slate-400 bg-slate-50 px-2 py-0.5 rounded uppercase">{{ log.h }} HRS</span>
+                            </div>
+                            <p class="font-bold text-slate-800 text-sm">{{ getEmpName(log.eid) }}</p>
+                            <p class="text-[9px] text-slate-400 font-bold uppercase tracking-tight">{{ getSiteName(log.sid) }}</p>
+                        </div>
+                        <button @click="deleteLog(log.id)" class="text-red-200 p-2 active:scale-75 transition-transform">✕</button>
+                    </div>
+                </div>
+
+                <!-- VIEW: SETUP -->
+                <div v-if="view === 'setup'" class="space-y-6">
+                    <div class="space-y-3 px-2">
+                        <h2 class="font-black text-lg">System Management</h2>
+                        <div class="space-y-2">
+                            <div class="flex gap-2">
+                                <input v-model="news.site" placeholder="Site Name" class="flex-1 bg-white p-4 rounded-2xl border-0 shadow-sm font-bold">
+                                <button @click="addSite" class="bg-slate-900 text-white px-6 rounded-2xl font-black">+</button>
+                            </div>
+                            <div class="flex gap-2">
+                                <input v-model="news.emp" placeholder="Worker Name" class="flex-1 bg-white p-4 rounded-2xl border-0 shadow-sm font-bold">
+                                <button @click="addEmp" class="bg-slate-900 text-white px-6 rounded-2xl font-black">+</button>
+                            </div>
+                        </div>
+                        <div class="pt-6 space-y-2">
+                            <h3 class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Active Database</h3>
+                            <div v-for="s in sites" :key="s.id" class="flex justify-between bg-white p-3 rounded-xl border border-slate-100 items-center">
+                                <span class="font-bold text-sm">{{s.name}}</span>
+                                <button @click="removeSite(s.id)" class="text-red-400 text-[10px] font-black uppercase bg-red-50 px-2 py-1 rounded">Delete</button>
+                            </div>
+                            <div v-for="e in employees" :key="e.id" class="flex justify-between bg-white p-3 rounded-xl border border-slate-100 items-center">
+                                <span class="font-bold text-sm">{{e.name}}</span>
+                                <button @click="removeEmp(e.id)" class="text-red-400 text-[10px] font-black uppercase bg-red-50 px-2 py-1 rounded">Delete</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </main>
+
+            <!-- Navbar -->
+            <nav class="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-xl border-t border-slate-100 px-6 py-4 pb-10 flex justify-between safe-bottom z-40 shadow-lg">
+                <button v-for="t in ['log', 'jobs', 'stats', 'history', 'setup']" @click="view = t" :class="{ 'active-nav': view === t }" class="text-slate-300 transition-all flex flex-col items-center">
+                    <div v-if="t==='log'"><svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20"><path d="M17.414 2.586a2 2 0 00-2.828 0L7 10.172V13h2.828l7.586-7.586a2 2 0 000-2.828z"></path><path fill-rule="evenodd" d="M2 6a2 2 0 012-2h4a1 1 0 010 2H4v10h10v-4a1 1 0 112 0v4a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" clip-rule="evenodd"></path></svg></div>
+                    <div v-if="t==='jobs'"><svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20"><path d="M4 4a2 2 0 00-2 2v1h16V6a2 2 0 00-2-2H4z"></path><path fill-rule="evenodd" d="M18 9H2v5a2 2 0 002 2h12a2 2 0 002-2V9zM4 13a1 1 0 011-1h1a1 1 0 110 2H5a1 1 0 01-1-1zm5-1a1 1 0 100 2h1a1 1 0 100-2H9z" clip-rule="evenodd"></path></svg></div>
+                    <div v-if="t==='stats'"><svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20"><path d="M2 11a1 1 0 011-1h2a1 1 0 011 1v5a1 1 0 01-1 1H3a1 1 0 01-1-1v-5zM8 7a1 1 0 011-1h2a1 1 0 011 1v9a1 1 0 01-1 1H9a1 1 0 01-1-1V7zM14 4a1 1 0 011-1h2a1 1 0 011 1v12a1 1 0 01-1 1h-2a1 1 0 01-1-1V4z"></path></svg></div>
+                    <div v-if="t==='history'"><svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd"></path></svg></div>
+                    <div v-if="t==='setup'"><svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.533 1.533 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.533 1.533 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd"></path></svg></div>
+                    <span class="text-[7px] font-black uppercase mt-1">{{ t }}</span>
+                </button>
+            </nav>
+        </template>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, doc, addDoc, updateDoc, deleteDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        const { createApp, ref, reactive, computed, onMounted } = Vue;
+
+        // Firebase Configuration provided by user
+        const firebaseConfig = {
+            apiKey: "AIzaSyA9ErQCRNaHA6eXr4qmm0tfDrf3WfoJnhY",
+            authDomain: "sp-creativ-tracker.firebaseapp.com",
+            projectId: "sp-creativ-tracker",
+            storageBucket: "sp-creativ-tracker.firebasestorage.app",
+            messagingSenderId: "2932232690",
+            appId: "1:2932232690:web:acb6842bfcb49d427adb6b"
+        };
+
+        const fbApp = initializeApp(firebaseConfig);
+        const auth = getAuth(fbApp);
+        const db = getFirestore(fbApp);
+        const appId = 'sp-creativ-final'; // Internal directory for Firestore
+
+        createApp({
+            setup() {
+                const user = ref(null);
+                const authLoading = ref(false);
+                const authError = ref('');
+                const authForm = reactive({ email: '', pass: '' });
+                const view = ref('log');
+                const loading = ref(true);
+
+                const sites = ref([]);
+                const employees = ref([]);
+                const logs = ref([]);
+                
+                const form = ref({ date: new Date().toISOString().split('T')[0], hours: 8, siteId: '', selected: [] });
+                const news = ref({ site: '', emp: '' });
+                const priceForm = reactive({});
+                const statTimeframe = ref('All');
+
+                onMounted(async () => {
+                    onAuthStateChanged(auth, (u) => {
+                        user.value = u;
+                        if(u) startSync();
+                        else loading.value = false;
+                    });
+                });
+
+                const startSync = () => {
+                    if (!auth.currentUser) return;
+
+                    // Sync Sites
+                    onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'sites'), (snap) => {
+                        sites.value = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+                        sites.value.forEach(s => { if(!priceForm[s.id]) priceForm[s.id] = { desc: '', qty: 0, unit: 'm2', price: 0 }; });
+                        loading.value = false;
+                    }, (err) => console.error("Sites Sync Error:", err));
+
+                    // Sync Employees
+                    onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'employees'), (snap) => {
+                        employees.value = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+                    }, (err) => console.error("Employees Sync Error:", err));
+
+                    // Sync Logs
+                    onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'logs'), (snap) => {
+                        logs.value = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+                    }, (err) => console.error("Logs Sync Error:", err));
+                };
+
+                const handleLogin = async () => {
+                    authLoading.value = true;
+                    authError.value = '';
+                    try { 
+                        await signInWithEmailAndPassword(auth, authForm.email, authForm.pass); 
+                    } catch (e) { 
+                        authError.value = 'Invalid Login Credentials'; 
+                    } finally { 
+                        authLoading.value = false; 
+                    }
+                };
+
+                const handleLogout = () => signOut(auth);
+
+                const toggleEmp = (id) => {
+                    const i = form.value.selected.indexOf(id);
+                    if (i > -1) form.value.selected.splice(i, 1); else form.value.selected.push(id);
+                };
+
+                // Helper to get total hours logged for a worker on the selected date
+                const getTodayHours = (eid) => {
+                    return logs.value
+                        .filter(l => l.eid === eid && l.date === form.value.date)
+                        .reduce((sum, log) => sum + parseFloat(log.h || 0), 0);
+                };
+
+                const saveLabor = async () => {
+                    if (!user.value) return;
+                    loading.value = true;
+                    const col = collection(db, 'artifacts', appId, 'public', 'data', 'logs');
+                    
+                    try {
+                        for(const eid of form.value.selected) {
+                            await addDoc(col, { 
+                                eid, 
+                                sid: form.value.siteId, 
+                                date: form.value.date, 
+                                h: parseFloat(form.value.hours) 
+                            });
+                        }
+                        form.value.selected = [];
+                    } catch (e) { 
+                        console.error("Save Error:", e); 
+                    } finally { 
+                        loading.value = false; 
+                    }
+                };
+
+                const deleteLog = async (id) => { 
+                    if (!user.value) return;
+                    if(confirm('Permanently delete this labor entry?')) {
+                        await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'logs', id));
+                    }
+                };
+
+                const calculateSiteTotal = (sid) => (sites.value.find(x => x.id === sid)?.pricingItems || []).reduce((a, b) => a + (b.qty * b.price), 0);
+
+                const addItemToSite = async (sid) => {
+                    if (!user.value) return;
+                    const s = sites.value.find(x => x.id === sid);
+                    const items = [...(s.pricingItems || []), { id: Date.now(), ...priceForm[sid] }];
+                    await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'sites', sid), { pricingItems: items });
+                    priceForm[sid].desc = ''; priceForm[sid].qty = 0;
+                };
+
+                const removeItemFromSite = async (sid, iid) => {
+                    if (!user.value) return;
+                    const s = sites.value.find(x => x.id === sid);
+                    const items = s.pricingItems.filter(i => i.id !== iid);
+                    await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'sites', sid), { pricingItems: items });
+                };
+
+                const togglePaid = async (sid) => {
+                    if (!user.value) return;
+                    const s = sites.value.find(x => x.id === sid);
+                    await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'sites', sid), { isPaid: !s.isPaid });
+                };
+
+                const addSite = async () => { 
+                    if (!user.value || !news.value.site) return; 
+                    await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'sites'), { name: news.value.site, isPaid: false, pricingItems: [] }); 
+                    news.value.site = ''; 
+                };
+
+                const addEmp = async () => { 
+                    if (!user.value || !news.value.emp) return; 
+                    await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'employees'), { name: news.value.emp }); 
+                    news.value.emp = ''; 
+                };
+
+                const removeSite = async (id) => { if(confirm('Delete site and all related data?')) await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'sites', id)); };
+                const removeEmp = async (id) => { if(confirm('Remove worker from roster?')) await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'employees', id)); };
+
+                const isDateInTimeframe = (dateStr) => {
+                    if (statTimeframe.value === 'All') return true;
+                    const d = new Date(dateStr); const now = new Date();
+                    if (statTimeframe.value === 'Month') return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+                    if (statTimeframe.value === 'Week') {
+                        const mon = new Date(now.setDate(now.getDate() - now.getDay() + (now.getDay() === 0 ? -6 : 1)));
+                        mon.setHours(0,0,0,0); return d >= mon;
+                    }
+                    return true;
+                };
+
+                const getSiteHours = (sid) => logs.value.filter(l => l.sid === sid && isDateInTimeframe(l.date)).reduce((a, b) => a + b.h, 0);
+
+                return { 
+                    user, authForm, authLoading, authError, handleLogin, handleLogout, view, sites, employees, logs, form, news, priceForm, loading, statTimeframe,
+                    toggleEmp, saveLabor, deleteLog, addItemToSite, removeItemFromSite, togglePaid, addSite, addEmp, removeSite, removeEmp,
+                    calculateSiteTotal, getSiteHours, getTodayHours,
+                    statsEmpHours: computed(() => {
+                        const res = {};
+                        logs.value.filter(l => isDateInTimeframe(l.date)).forEach(l => {
+                            const n = employees.value.find(e => e.id === l.eid)?.name || 'Worker';
+                            res[n] = (res[n] || 0) + l.h;
+                        });
+                        return res;
+                    }),
+                    statsRevenue: computed(() => {
+                        const res = { paid: 0, unpaid: 0 };
+                        sites.value.forEach(s => {
+                            const hasLogs = logs.value.some(l => l.sid === s.id && isDateInTimeframe(l.date));
+                            if(hasLogs || statTimeframe.value === 'All') {
+                                if(s.isPaid) res.paid += calculateSiteTotal(s.id); else res.unpaid += calculateSiteTotal(s.id);
+                            }
+                        });
+                        return res;
+                    }),
+                    getEmpName: (id) => employees.value.find(e => e.id === id)?.name || '...',
+                    getSiteName: (id) => sites.value.find(s => s.id === id)?.name || '...',
+                    sortedLogs: computed(() => [...logs.value].sort((a,b) => new Date(b.date) - new Date(a.date)))
+                };
+            }
+        }).mount('#app');
+    </script>
+</body>
+</html>
