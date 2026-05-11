@@ -275,13 +275,22 @@
                 const priceForm = reactive({});
                 const statTimeframe = ref('All');
 
+                // Error Handler Helper
+                const handleError = (action, error) => {
+                    console.error(`${action} Error:`, error);
+                    if (error.code === 'permission-denied') {
+                        alert(`Permission Denied: Please update your Firestore Rules in the Firebase Console to allow read/write access.`);
+                    } else {
+                        alert(`Error during ${action}: ${error.message}`);
+                    }
+                };
+
                 onMounted(async () => {
                     const initAuth = async () => {
                         try {
                             if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
                                 await signInWithCustomToken(auth, __initial_auth_token);
                             } else {
-                                // Important: Wait for Firebase to check if the user is ALREADY logged in via email
                                 await auth.authStateReady();
                                 if (!auth.currentUser) {
                                     await signInAnonymously(auth);
@@ -374,7 +383,7 @@
                         }
                         form.value.selected = [];
                     } catch (e) { 
-                        alert("Error saving labor: " + e.message); 
+                        handleError('Save Labor', e);
                     } finally { 
                         loading.value = false; 
                     }
@@ -386,7 +395,7 @@
                         try {
                             await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'logs', id));
                         } catch (e) {
-                            alert("Error deleting log: " + e.message);
+                            handleError('Delete Log', e);
                         }
                     }
                 };
@@ -401,7 +410,7 @@
                         await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'sites', sid), { pricingItems: items });
                         priceForm[sid].desc = ''; priceForm[sid].qty = 0;
                     } catch (e) {
-                        alert("Error adding item: " + e.message);
+                        handleError('Add Line Item', e);
                     }
                 };
 
@@ -412,7 +421,7 @@
                     try {
                         await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'sites', sid), { pricingItems: items });
                     } catch (e) {
-                        alert("Error removing item: " + e.message);
+                        handleError('Remove Item', e);
                     }
                 };
 
@@ -422,18 +431,17 @@
                     try {
                         await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'sites', sid), { isPaid: !s.isPaid });
                     } catch (e) {
-                        alert("Error updating payment status: " + e.message);
+                        handleError('Update Payment Status', e);
                     }
                 };
 
-                // Added Try/Catch with Alerts for explicit error visibility
                 const addSite = async () => { 
                     if (!auth.currentUser || !news.value.site) return; 
                     try {
                         await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'sites'), { name: news.value.site, isPaid: false, pricingItems: [] }); 
                         news.value.site = ''; 
                     } catch (e) {
-                        alert("Error adding site: " + e.message);
+                        handleError('Add Site', e);
                     }
                 };
 
@@ -443,7 +451,7 @@
                         await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'employees'), { name: news.value.emp }); 
                         news.value.emp = ''; 
                     } catch (e) {
-                        alert("Error adding worker: " + e.message);
+                        handleError('Add Worker', e);
                     }
                 };
 
@@ -452,7 +460,7 @@
                         try {
                             await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'sites', id)); 
                         } catch(e) {
-                            alert("Error removing site: " + e.message);
+                            handleError('Remove Site', e);
                         }
                     }
                 };
@@ -462,7 +470,7 @@
                         try {
                             await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'employees', id)); 
                         } catch(e) {
-                            alert("Error removing worker: " + e.message);
+                            handleError('Remove Worker', e);
                         }
                     }
                 };
