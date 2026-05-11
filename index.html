@@ -9,7 +9,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
     <style>
-        [v-cloak] { display: none; }
+        [v-cloak] { display: none !important; }
         body { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
         .active-nav { color: #2563eb; transform: scale(1.1); }
         .custom-scrollbar::-webkit-scrollbar { width: 4px; }
@@ -21,7 +21,7 @@
     <div id="app" v-cloak class="flex flex-col min-h-screen">
         
         <!-- LOGIN SCREEN -->
-        <div v-if="!user" class="fixed inset-0 bg-slate-900 z-[100] flex items-center justify-center p-6">
+        <div v-if="!authorized" class="fixed inset-0 bg-slate-900 z-[100] flex items-center justify-center p-6">
             <div class="bg-white w-full max-w-sm rounded-[3rem] p-8 shadow-2xl">
                 <div class="text-center mb-8">
                     <h1 class="text-2xl font-black text-blue-600 italic uppercase">SP CREATIV</h1>
@@ -39,12 +39,12 @@
         </div>
 
         <!-- APP CONTENT -->
-        <template v-if="user">
+        <template v-if="authorized">
             <!-- Header -->
             <header class="bg-white border-b px-6 py-4 pt-12 sticky top-0 z-30 flex justify-between items-center shadow-sm">
                 <div>
                     <h1 class="text-xl font-black text-blue-600 italic uppercase leading-none">SP CREATIV</h1>
-                    <p class="text-[9px] text-slate-400 font-bold uppercase mt-1">Active: {{ (user.email || 'Admin').split('@')[0] }}</p>
+                    <p class="text-[9px] text-slate-400 font-bold uppercase mt-1">Active: {{ (userEmail || 'Admin').split('@')[0] }}</p>
                 </div>
                 <div class="flex items-center gap-3">
                     <div v-if="loading" class="animate-spin h-3 w-3 border-2 border-blue-600 border-t-transparent rounded-full"></div>
@@ -140,8 +140,20 @@
 
                 <!-- VIEW: TOTALS -->
                 <div v-if="view === 'stats'" class="space-y-4">
-                    <div class="flex p-1 bg-slate-200 rounded-2xl sticky top-28 z-10 shadow-sm">
-                        <button v-for="t in ['Week', 'Month', 'All']" @click="statTimeframe = t" :class="statTimeframe === t ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500'" class="flex-1 py-3 text-xs font-black uppercase rounded-xl transition-all">{{t}}</button>
+                    <!-- Advanced Timeframe Filter -->
+                    <div class="flex p-1 bg-slate-200 rounded-2xl sticky top-28 z-10 shadow-sm items-center">
+                        <button @click="statMode = 'week'" :class="statMode === 'week' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500'" class="flex-1 py-3 text-xs font-black uppercase rounded-xl transition-all">Week</button>
+                        
+                        <!-- Month Picker -->
+                        <div class="flex-1 relative h-full">
+                            <input type="month" v-model="selectedMonth" @input="statMode = 'month'" class="absolute inset-0 w-full h-full opacity-0 z-20 cursor-pointer">
+                            <div :class="statMode === 'month' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500'" class="w-full py-3 text-[11px] font-black uppercase rounded-xl transition-all flex items-center justify-center gap-1">
+                                {{ formatMonth(selectedMonth) }}
+                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M19 9l-7 7-7-7"></path></svg>
+                            </div>
+                        </div>
+
+                        <button @click="statMode = 'all'" :class="statMode === 'all' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500'" class="flex-1 py-3 text-xs font-black uppercase rounded-xl transition-all">All</button>
                     </div>
 
                     <div class="bg-slate-900 p-6 rounded-[2.5rem] shadow-xl text-white">
@@ -235,12 +247,13 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut, signInWithCustomToken, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, collection, doc, addDoc, updateDoc, deleteDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         const { createApp, ref, reactive, computed, onMounted } = Vue;
 
-        const firebaseConfig = {
+        // Firebase Setup
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {
             apiKey: "AIzaSyA9ErQCRNaHA6eXr4qmm0tfDrf3WfoJnhY",
             authDomain: "sp-creativ-tracker.firebaseapp.com",
             projectId: "sp-creativ-tracker",
@@ -252,14 +265,17 @@
         const fbApp = initializeApp(firebaseConfig);
         const auth = getAuth(fbApp);
         const db = getFirestore(fbApp);
-        const appId = 'sp-creativ-final';
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'sp-creativ-final';
 
         createApp({
             setup() {
                 const user = ref(null);
+                const authorized = ref(false);
                 const authLoading = ref(false);
                 const authError = ref('');
                 const authForm = reactive({ email: '', pass: '' });
+                const userEmail = ref('');
+                
                 const view = ref('log');
                 const loading = ref(true);
 
@@ -270,13 +286,62 @@
                 const form = ref({ date: new Date().toISOString().split('T')[0], hours: 8, siteId: '', selected: [] });
                 const news = ref({ site: '', emp: '' });
                 const priceForm = reactive({});
-                const statTimeframe = ref('All');
+                
+                // --- NEW TIME FILTER LOGIC ---
+                const statMode = ref('month'); // 'week', 'month', or 'all'
+                
+                // Initialize default month to current YYYY-MM
+                const d = new Date();
+                const defaultYear = d.getFullYear();
+                const defaultMonth = String(d.getMonth() + 1).padStart(2, '0');
+                const selectedMonth = ref(`${defaultYear}-${defaultMonth}`);
+
+                const formatMonth = (val) => {
+                    if(!val) return 'MONTH';
+                    const [year, month] = val.split('-');
+                    const date = new Date(year, month - 1);
+                    return date.toLocaleDateString('en-US', { month: 'short', year: '2-digit' }).toUpperCase();
+                };
+
+                const handleError = (action, error) => {
+                    console.error(`${action} Error:`, error);
+                    if (error.code === 'permission-denied') {
+                        alert(`Permission Denied: Please update your Firestore Rules in the Firebase Console to allow read/write access.`);
+                    } else {
+                        alert(`Error during ${action}: ${error.message}`);
+                    }
+                };
 
                 onMounted(async () => {
+                    const initAuth = async () => {
+                        try {
+                            if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                                await signInWithCustomToken(auth, __initial_auth_token);
+                            } else {
+                                await auth.authStateReady();
+                                if (!auth.currentUser) {
+                                    await signInAnonymously(auth);
+                                }
+                            }
+                        } catch (e) {
+                            console.error("Initial Auth Error:", e);
+                        }
+                    };
+                    await initAuth();
+
                     onAuthStateChanged(auth, (u) => {
                         user.value = u;
-                        if(u) startSync();
-                        else loading.value = false;
+                        if (u && !u.isAnonymous) {
+                            authorized.value = true;
+                            userEmail.value = u.email;
+                            startSync();
+                        } else if (u && u.isAnonymous) {
+                            authorized.value = false;
+                            loading.value = false;
+                        } else {
+                            authorized.value = false;
+                            loading.value = false;
+                        }
                     });
                 });
 
@@ -287,7 +352,10 @@
                         sites.value = snap.docs.map(d => ({ id: d.id, ...d.data() }));
                         sites.value.forEach(s => { if(!priceForm[s.id]) priceForm[s.id] = { desc: '', qty: 0, unit: 'm2', price: 0 }; });
                         loading.value = false;
-                    }, (err) => console.error("Sites Sync Error:", err));
+                    }, (err) => {
+                        console.error("Sites Sync Error:", err);
+                        loading.value = false;
+                    });
 
                     onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'employees'), (snap) => {
                         employees.value = snap.docs.map(d => ({ id: d.id, ...d.data() }));
@@ -310,7 +378,10 @@
                     }
                 };
 
-                const handleLogout = () => signOut(auth);
+                const handleLogout = async () => {
+                    await signOut(auth);
+                    await signInAnonymously(auth);
+                };
 
                 const toggleEmp = (id) => {
                     const i = form.value.selected.indexOf(id);
@@ -324,7 +395,7 @@
                 };
 
                 const saveLabor = async () => {
-                    if (!user.value) return;
+                    if (!auth.currentUser) return;
                     loading.value = true;
                     const col = collection(db, 'artifacts', appId, 'public', 'data', 'logs');
                     
@@ -339,64 +410,117 @@
                         }
                         form.value.selected = [];
                     } catch (e) { 
-                        console.error("Save Error:", e); 
+                        handleError('Save Labor', e);
                     } finally { 
                         loading.value = false; 
                     }
                 };
 
                 const deleteLog = async (id) => { 
-                    if (!user.value) return;
+                    if (!auth.currentUser) return;
                     if(confirm('Permanently delete this labor entry?')) {
-                        await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'logs', id));
+                        try {
+                            await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'logs', id));
+                        } catch (e) {
+                            handleError('Delete Log', e);
+                        }
                     }
                 };
 
                 const calculateSiteTotal = (sid) => (sites.value.find(x => x.id === sid)?.pricingItems || []).reduce((a, b) => a + (b.qty * b.price), 0);
 
                 const addItemToSite = async (sid) => {
-                    if (!user.value) return;
+                    if (!auth.currentUser) return;
                     const s = sites.value.find(x => x.id === sid);
                     const items = [...(s.pricingItems || []), { id: Date.now(), ...priceForm[sid] }];
-                    await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'sites', sid), { pricingItems: items });
-                    priceForm[sid].desc = ''; priceForm[sid].qty = 0;
+                    try {
+                        await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'sites', sid), { pricingItems: items });
+                        priceForm[sid].desc = ''; priceForm[sid].qty = 0;
+                    } catch (e) {
+                        handleError('Add Line Item', e);
+                    }
                 };
 
                 const removeItemFromSite = async (sid, iid) => {
-                    if (!user.value) return;
+                    if (!auth.currentUser) return;
                     const s = sites.value.find(x => x.id === sid);
                     const items = s.pricingItems.filter(i => i.id !== iid);
-                    await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'sites', sid), { pricingItems: items });
+                    try {
+                        await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'sites', sid), { pricingItems: items });
+                    } catch (e) {
+                        handleError('Remove Item', e);
+                    }
                 };
 
                 const togglePaid = async (sid) => {
-                    if (!user.value) return;
+                    if (!auth.currentUser) return;
                     const s = sites.value.find(x => x.id === sid);
-                    await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'sites', sid), { isPaid: !s.isPaid });
+                    try {
+                        await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'sites', sid), { isPaid: !s.isPaid });
+                    } catch (e) {
+                        handleError('Update Payment Status', e);
+                    }
                 };
 
                 const addSite = async () => { 
-                    if (!user.value || !news.value.site) return; 
-                    await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'sites'), { name: news.value.site, isPaid: false, pricingItems: [] }); 
-                    news.value.site = ''; 
+                    if (!auth.currentUser || !news.value.site) return; 
+                    try {
+                        await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'sites'), { name: news.value.site, isPaid: false, pricingItems: [] }); 
+                        news.value.site = ''; 
+                    } catch (e) {
+                        handleError('Add Site', e);
+                    }
                 };
 
                 const addEmp = async () => { 
-                    if (!user.value || !news.value.emp) return; 
-                    await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'employees'), { name: news.value.emp }); 
-                    news.value.emp = ''; 
+                    if (!auth.currentUser || !news.value.emp) return; 
+                    try {
+                        await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'employees'), { name: news.value.emp }); 
+                        news.value.emp = ''; 
+                    } catch (e) {
+                        handleError('Add Worker', e);
+                    }
                 };
 
-                const removeSite = async (id) => { if(confirm('Delete site and all related data?')) await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'sites', id)); };
-                const removeEmp = async (id) => { if(confirm('Remove worker from roster?')) await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'employees', id)); };
+                const removeSite = async (id) => { 
+                    if(confirm('Delete site?')) {
+                        try {
+                            await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'sites', id)); 
+                        } catch(e) {
+                            handleError('Remove Site', e);
+                        }
+                    }
+                };
 
+                const removeEmp = async (id) => { 
+                    if(confirm('Delete worker?')) {
+                        try {
+                            await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'employees', id)); 
+                        } catch(e) {
+                            handleError('Remove Worker', e);
+                        }
+                    }
+                };
+
+                // --- UPDATED TIMEFRAME CHECKER ---
                 const isDateInTimeframe = (dateStr) => {
-                    if (statTimeframe.value === 'All') return true;
-                    const d = new Date(dateStr); const now = new Date();
-                    if (statTimeframe.value === 'Month') return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
-                    if (statTimeframe.value === 'Week') {
+                    if (statMode.value === 'all') return true;
+                    
+                    const logD = new Date(dateStr); 
+                    const now = new Date();
+                    
+                    if (statMode.value === 'month') {
+                        // Compare the exact year and month selected in the native picker
+                        if (!selectedMonth.value) return true;
+                        const [selY, selM] = selectedMonth.value.split('-');
+                        return logD.getFullYear() === parseInt(selY) && (logD.getMonth() + 1) === parseInt(selM);
+                    }
+                    
+                    if (statMode.value === 'week') {
+                        // Compare current week
                         const mon = new Date(now.setDate(now.getDate() - now.getDay() + (now.getDay() === 0 ? -6 : 1)));
-                        mon.setHours(0,0,0,0); return d >= mon;
+                        mon.setHours(0,0,0,0); 
+                        return logD >= mon;
                     }
                     return true;
                 };
@@ -404,7 +528,8 @@
                 const getSiteHours = (sid) => logs.value.filter(l => l.sid === sid && isDateInTimeframe(l.date)).reduce((a, b) => a + b.h, 0);
 
                 return { 
-                    user, authForm, authLoading, authError, handleLogin, handleLogout, view, sites, employees, logs, form, news, priceForm, loading, statTimeframe,
+                    user, authorized, userEmail, authForm, authLoading, authError, handleLogin, handleLogout, view, sites, employees, logs, form, news, priceForm, loading, 
+                    statMode, selectedMonth, formatMonth,
                     toggleEmp, saveLabor, deleteLog, addItemToSite, removeItemFromSite, togglePaid, addSite, addEmp, removeSite, removeEmp,
                     calculateSiteTotal, getSiteHours, getTodayHours,
                     statsEmpHours: computed(() => {
@@ -419,7 +544,7 @@
                         const res = { paid: 0, unpaid: 0 };
                         sites.value.forEach(s => {
                             const hasLogs = logs.value.some(l => l.sid === s.id && isDateInTimeframe(l.date));
-                            if(hasLogs || statTimeframe.value === 'All') {
+                            if(hasLogs || statMode.value === 'all') {
                                 if(s.isPaid) res.paid += calculateSiteTotal(s.id); else res.unpaid += calculateSiteTotal(s.id);
                             }
                         });
