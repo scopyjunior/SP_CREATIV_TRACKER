@@ -5,34 +5,121 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <title>SP CREATIV | Secure Cloud</title>
+    <!-- Outfit Font -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@100..900&display=swap" rel="stylesheet">
+    
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        slate: {
+                            950: '#030712',
+                            900: '#0f172a',
+                            800: '#1e293b',
+                            750: '#1e293b90',
+                            700: '#334155',
+                            600: '#475569',
+                            400: '#94a3b8',
+                            300: '#cbd5e1',
+                        },
+                        brand: {
+                            indigo: '#6366f1',
+                            violet: '#8b5cf6',
+                            emerald: '#10b981',
+                            rose: '#f43f5e',
+                            amber: '#f59e0b',
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Outfit', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
     <style>
         [v-cloak] { display: none !important; }
-        body { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
-        .active-nav { color: #2563eb; transform: scale(1.1); }
-        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
-        .safe-bottom { padding-bottom: env(safe-area-inset-bottom, 24px); }
+        body { 
+            -webkit-tap-highlight-color: transparent; 
+            touch-action: manipulation; 
+            background-color: #030712;
+        }
+        .active-nav { 
+            color: #8b5cf6; 
+            text-shadow: 0 0 12px rgba(139, 92, 246, 0.4);
+        }
+        .custom-scrollbar::-webkit-scrollbar { 
+            width: 5px; 
+            height: 5px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: rgba(15, 23, 42, 0.3);
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb { 
+            background: #334155; 
+            border-radius: 10px; 
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { 
+            background: #475569; 
+        }
+        .safe-bottom { 
+            padding-bottom: env(safe-area-inset-bottom, 24px); 
+        }
+        .glass-panel {
+            background: rgba(15, 23, 42, 0.65);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(51, 65, 85, 0.5);
+        }
+        .glass-input {
+            background: rgba(30, 41, 59, 0.45);
+            border: 1px solid rgba(51, 65, 85, 0.4);
+        }
+        .glass-input:focus {
+            border-color: #6366f1;
+            box-shadow: 0 0 10px rgba(99, 102, 241, 0.25);
+        }
     </style>
 </head>
-<body class="bg-slate-50 text-slate-900 font-sans select-none">
+<body class="text-slate-100 font-sans select-none antialiased min-h-screen relative overflow-x-hidden">
+    
+    <!-- ambient background blobs -->
+    <div class="fixed inset-0 bg-slate-950 -z-50 overflow-hidden">
+        <div class="absolute top-[-10%] left-[-15%] w-[60%] h-[60%] rounded-full bg-brand-indigo/10 blur-[130px] pointer-events-none"></div>
+        <div class="absolute bottom-[-10%] right-[-15%] w-[60%] h-[60%] rounded-full bg-brand-violet/10 blur-[130px] pointer-events-none"></div>
+    </div>
+
     <div id="app" v-cloak class="flex flex-col min-h-screen">
         
         <!-- LOGIN SCREEN -->
-        <div v-if="!user" class="fixed inset-0 bg-slate-900 z-[100] flex items-center justify-center p-6">
-            <div class="bg-white w-full max-w-sm rounded-[3rem] p-8 shadow-2xl">
+        <div v-if="!user" class="fixed inset-0 bg-slate-950 z-[100] flex items-center justify-center p-6">
+            <div class="glass-panel w-full max-w-sm rounded-[2.5rem] p-8 shadow-2xl relative overflow-hidden">
+                <div class="absolute -top-12 -right-12 w-28 h-28 bg-brand-indigo/20 rounded-full blur-2xl"></div>
                 <div class="text-center mb-8">
-                    <h1 class="text-2xl font-black text-blue-600 italic uppercase">SP CREATIV</h1>
-                    <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Authorized Access Only</p>
+                    <div class="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-gradient-to-tr from-brand-indigo to-brand-violet mb-4 shadow-lg shadow-brand-indigo/25">
+                        <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z"></path>
+                        </svg>
+                    </div>
+                    <h1 class="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-brand-indigo via-violet-400 to-brand-violet italic uppercase tracking-wider">SP CREATIV</h1>
+                    <p class="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-1">Secure Cloud Portal</p>
                 </div>
                 <div class="space-y-4">
-                    <input v-model="authForm.email" type="email" placeholder="Email" class="w-full bg-slate-100 p-4 rounded-2xl border-0 font-bold outline-none">
-                    <input v-model="authForm.pass" type="password" placeholder="Password" class="w-full bg-slate-100 p-4 rounded-2xl border-0 font-bold outline-none">
-                    <button @click="handleLogin" class="w-full bg-blue-600 text-white font-black py-4 rounded-2xl shadow-lg active:scale-95 transition-all">
+                    <div class="relative">
+                        <input v-model="authForm.email" type="email" placeholder="Email" class="w-full glass-input p-4 pl-5 rounded-2xl font-semibold outline-none text-sm text-slate-100 transition-all">
+                    </div>
+                    <div class="relative">
+                        <input v-model="authForm.pass" type="password" placeholder="Password" class="w-full glass-input p-4 pl-5 rounded-2xl font-semibold outline-none text-sm text-slate-100 transition-all">
+                    </div>
+                    <button @click="handleLogin" class="w-full bg-gradient-to-r from-brand-indigo to-brand-violet hover:from-brand-indigo/90 hover:to-brand-violet/90 text-white font-black py-4 rounded-2xl shadow-lg shadow-brand-indigo/20 active:scale-95 transition-all text-sm tracking-widest uppercase">
                         {{ authLoading ? 'VERIFYING...' : 'LOGIN' }}
                     </button>
-                    <p v-if="authError" class="text-red-500 text-[10px] font-black text-center uppercase mt-2">{{ authError }}</p>
+                    <p v-if="authError" class="text-brand-rose text-[10px] font-bold text-center uppercase mt-2 tracking-wide">{{ authError }}</p>
                 </div>
             </div>
         </div>
@@ -40,286 +127,393 @@
         <!-- APP CONTENT -->
         <template v-if="user">
             <!-- Header -->
-            <header class="bg-white border-b px-6 py-4 pt-12 sticky top-0 z-30 flex justify-between items-center shadow-sm">
-                <div>
-                    <h1 class="text-xl font-black text-blue-600 italic uppercase leading-none">SP CREATIV</h1>
-                    <p class="text-[9px] font-bold uppercase mt-1" :class="isAdmin ? 'text-blue-500' : 'text-emerald-500'">
-                        {{ isAdmin ? 'Admin' : 'Crew Mode' }} • {{ (user.email || '').split('@')[0] }}
-                    </p>
+            <header class="bg-slate-900/40 backdrop-blur-md border-b border-slate-800/60 px-6 py-4 pt-10 sticky top-0 z-30 flex justify-between items-center shadow-md">
+                <div class="flex items-center gap-3">
+                    <div class="w-8 h-8 rounded-xl bg-gradient-to-tr from-brand-indigo to-brand-violet flex items-center justify-center shadow-md shadow-brand-indigo/10">
+                        <svg class="w-4.5 h-4.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z"></path>
+                        </svg>
+                    </div>
+                    <div>
+                        <h1 class="text-md font-black text-transparent bg-clip-text bg-gradient-to-r from-brand-indigo to-brand-violet italic uppercase leading-none">SP CREATIV</h1>
+                        <p class="text-[8px] font-extrabold uppercase mt-1 tracking-wider" :class="isAdmin ? 'text-brand-indigo' : 'text-brand-emerald'">
+                            {{ isAdmin ? 'Administrator' : 'Crew Mode' }} • {{ (user.email || '').split('@')[0] }}
+                        </p>
+                    </div>
                 </div>
                 <div class="flex items-center gap-3">
-                    <div v-if="loading" class="animate-spin h-3 w-3 border-2 border-blue-600 border-t-transparent rounded-full"></div>
-                    <button @click="handleLogout" class="text-[9px] font-black bg-slate-100 px-3 py-1.5 rounded-full uppercase active:scale-90 transition-transform">Logout</button>
+                    <div v-if="loading" class="animate-spin h-3.5 w-3.5 border-2 border-brand-indigo border-t-transparent rounded-full"></div>
+                    <button @click="handleLogout" class="text-[9px] font-black bg-slate-800/80 hover:bg-slate-755 border border-slate-700/50 px-3.5 py-1.5 rounded-full uppercase active:scale-90 transition-all tracking-wider text-slate-300">Logout</button>
                 </div>
             </header>
 
-            <main class="flex-1 p-4 pb-32">
+            <main class="flex-1 p-4 pb-32 max-w-lg mx-auto w-full">
                 
-                <!-- ========================================== -->
-                <!--               ADMIN VIEWS                  -->
-                <!-- ========================================== -->
-                <template v-if="isAdmin">
-                    <!-- VIEW: LOG LABOR -->
-                    <div v-if="view === 'log'" class="space-y-4">
-                        <div class="bg-white p-6 rounded-[2.5rem] shadow-sm border border-slate-100">
-                            <div class="grid grid-cols-2 gap-4 mb-4">
-                                <div class="space-y-1">
-                                    <label class="text-[10px] font-black text-slate-400 uppercase">Date</label>
-                                    <input type="date" v-model="form.date" class="w-full bg-slate-50 rounded-2xl p-4 border-0 text-sm font-bold outline-none">
-                                </div>
-                                <div class="space-y-1">
-                                    <label class="text-[10px] font-black text-slate-400 uppercase">Hours to Add</label>
-                                    <input type="number" step="0.5" v-model="form.hours" class="w-full bg-slate-50 rounded-2xl p-4 border-0 text-sm font-bold outline-none">
-                                </div>
-                            </div>
-                            
-                            <div class="space-y-1 mb-6">
-                                <label class="text-[10px] font-black text-slate-400 uppercase">Project Site</label>
-                                <select v-model="form.siteId" class="w-full bg-slate-50 rounded-2xl p-4 border-0 font-bold text-sm outline-none appearance-none">
-                                    <option value="">Select Site...</option>
-                                    <option v-for="s in sites" :key="s.id" :value="s.id">{{s.name}}</option>
-                                </select>
-                            </div>
-
-                            <div class="space-y-2">
-                                <label class="text-[10px] font-black text-slate-400 uppercase">Select Crew</label>
-                                <div class="grid grid-cols-1 gap-2 max-h-60 overflow-y-auto pr-1 custom-scrollbar">
-                                    <button v-for="e in employees" :key="e.id" @click="toggleEmp(e.id)" 
-                                         :class="form.selected.includes(e.id) ? 'bg-blue-600 text-white shadow-lg' : 'bg-slate-50 text-slate-500'"
-                                         class="p-4 rounded-2xl font-bold text-left flex justify-between items-center transition-all border border-transparent">
-                                        <div class="flex flex-col">
-                                            <span>{{e.name}}</span>
-                                            <span class="text-[8px] uppercase opacity-70">
-                                                Daily total: {{ getTodayHours(e.id) }}h
-                                            </span>
-                                        </div>
-                                        <span v-if="form.selected.includes(e.id)">✓</span>
-                                    </button>
-                                </div>
-                            </div>
-
-                            <button @click="saveLabor" :disabled="!form.siteId || !form.selected.length || loading"
-                                    class="w-full bg-blue-600 disabled:bg-slate-100 text-white font-black py-5 rounded-[2rem] mt-8 shadow-xl active:scale-95 transition-all">
-                                {{ loading ? 'SYNCING...' : 'SYNC ENTRIES (' + form.selected.length + ')' }}
-                            </button>
-                        </div>
+                <!-- LOADING SKELETON -->
+                <div v-if="loading && sites.length === 0" class="space-y-4 animate-pulse">
+                    <div class="glass-panel h-48 rounded-[2.5rem] p-6 space-y-4">
+                        <div class="h-4 bg-slate-800 rounded-md w-1/3"></div>
+                        <div class="h-12 bg-slate-800 rounded-xl"></div>
+                        <div class="h-12 bg-slate-800 rounded-xl"></div>
                     </div>
-
-                    <!-- VIEW: JOBS (Revenue) -->
-                    <div v-if="view === 'jobs'" class="space-y-6">
-                        <div v-for="site in sites" :key="site.id" class="bg-white rounded-[2.5rem] border border-slate-100 overflow-hidden shadow-sm">
-                            <div class="p-5 flex justify-between items-center" :class="site.isPaid ? 'bg-emerald-500 text-white' : 'bg-slate-900 text-white'">
-                                <span class="font-black uppercase text-sm tracking-widest">{{ site.name }}</span>
-                                <span class="text-xl font-black">${{ calculateSiteTotal(site.id).toLocaleString() }}</span>
-                            </div>
-                            <div class="p-5 space-y-4">
-                                <button @click="togglePaid(site.id)" :class="site.isPaid ? 'bg-emerald-100 text-emerald-700' : 'bg-orange-50 text-orange-600'" class="w-full py-3 rounded-2xl font-black text-xs uppercase tracking-widest">
-                                    {{ site.isPaid ? '🟢 PAID' : '🔴 UNPAID' }}
-                                </button>
-                                
-                                <div class="space-y-2">
-                                    <div v-for="item in (site.pricingItems || [])" :key="item.id" class="flex justify-between items-center border-b border-slate-50 pb-2">
-                                        <div class="flex flex-col">
-                                            <span class="text-xs font-bold">{{item.desc}}</span>
-                                            <span class="text-[9px] text-slate-400 font-black uppercase">{{item.qty}}{{item.unit}} x ${{item.price}}</span>
-                                        </div>
-                                        <div class="flex items-center gap-3">
-                                            <span class="text-sm font-black text-slate-800">${{(item.qty * item.price).toLocaleString()}}</span>
-                                            <button @click="removeItemFromSite(site.id, item.id)" class="text-red-300">✕</button>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div class="bg-slate-50 p-4 rounded-3xl space-y-2">
-                                    <input v-model="priceForm[site.id].desc" placeholder="Work (e.g. Living Room)" class="w-full bg-white p-3 rounded-xl text-xs font-bold outline-none border-0 shadow-sm">
-                                    <div class="grid grid-cols-3 gap-2">
-                                        <input v-model="priceForm[site.id].qty" type="number" placeholder="Qty" class="bg-white p-3 rounded-xl text-xs font-bold border-0 shadow-sm">
-                                        <input v-model="priceForm[site.id].unit" placeholder="m2" class="bg-white p-3 rounded-xl text-xs font-bold border-0 uppercase text-center shadow-sm">
-                                        <input v-model="priceForm[site.id].price" type="number" placeholder="Price" class="bg-white p-3 rounded-xl text-xs font-bold border-0 shadow-sm">
-                                    </div>
-                                    <button @click="addItemToSite(site.id)" class="w-full bg-slate-800 text-white font-black py-3 rounded-xl text-[10px] uppercase mt-1">Add Revenue Item</button>
-                                </div>
-                            </div>
-                        </div>
+                    <div class="glass-panel h-64 rounded-[2.5rem] p-6 space-y-4">
+                        <div class="h-4 bg-slate-800 rounded-md w-1/2"></div>
+                        <div class="h-8 bg-slate-800 rounded-lg" v-for="i in 3" :key="i"></div>
                     </div>
+                </div>
 
-                    <!-- VIEW: TOTALS -->
-                    <div v-if="view === 'stats'" class="space-y-4">
-                        <div class="flex p-1 bg-slate-200 rounded-2xl sticky top-28 z-10 shadow-sm items-center">
-                            <button @click="statTimeframe = 'Week'; timeOffset = 0" :class="statTimeframe === 'Week' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500'" class="flex-1 py-3 text-xs font-black uppercase rounded-xl transition-all">Week</button>
-                            <div class="flex-1 relative h-full">
-                                <input type="month" v-model="selectedMonth" @input="statTimeframe = 'Month'; timeOffset = 0" class="absolute inset-0 w-full h-full opacity-0 z-20 cursor-pointer">
-                                <div :class="statTimeframe === 'Month' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500'" class="w-full py-3 text-[11px] font-black uppercase rounded-xl transition-all flex items-center justify-center gap-1">
-                                    {{ formatMonth(selectedMonth) }}
-                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M19 9l-7 7-7-7"></path></svg>
-                                </div>
-                            </div>
-                            <button @click="statTimeframe = 'All'" :class="statTimeframe === 'All' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500'" class="flex-1 py-3 text-xs font-black uppercase rounded-xl transition-all">All</button>
-                        </div>
-
-                        <div v-if="statTimeframe !== 'All'" class="flex justify-between items-center bg-white p-2 rounded-2xl shadow-sm border border-slate-100">
-                            <button @click="timeOffset--" class="px-4 py-2 bg-slate-50 rounded-xl text-slate-600 font-bold active:scale-95 transition-transform text-[10px] uppercase tracking-wider">← Prev</button>
-                            <span class="text-[10px] font-black text-blue-600 uppercase tracking-widest text-center flex-1">{{ currentTimeLabel }}</span>
-                            <button @click="timeOffset++" class="px-4 py-2 bg-slate-50 rounded-xl text-slate-600 font-bold active:scale-95 transition-transform text-[10px] uppercase tracking-wider" :class="{'opacity-30': timeOffset === 0}" :disabled="timeOffset === 0">Next →</button>
-                        </div>
-
-                        <div class="bg-slate-900 p-6 rounded-[2.5rem] shadow-xl text-white">
-                            <h3 class="text-[10px] font-black text-slate-500 uppercase mb-4 text-center tracking-widest">Revenue Status</h3>
-                            <div class="grid grid-cols-2 gap-4 text-center">
-                                <div>
-                                    <p class="text-[9px] font-black text-emerald-400 uppercase">Paid</p>
-                                    <p class="text-xl font-black">${{ statsRevenue.paid.toLocaleString() }}</p>
-                                </div>
-                                <div>
-                                    <p class="text-[9px] font-black text-orange-400 uppercase">Owed</p>
-                                    <p class="text-xl font-black">${{ statsRevenue.unpaid.toLocaleString() }}</p>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="bg-white p-6 rounded-[2.5rem] border border-slate-100 shadow-sm">
-                            <h3 class="text-xs font-black text-slate-400 uppercase mb-4 tracking-widest">Total Hours per Site</h3>
-                            <div v-for="site in sites" :key="site.id" class="py-3 border-b border-slate-50 last:border-0 flex justify-between items-center">
-                                <span class="font-bold text-sm text-slate-700">{{ site.name }}</span>
-                                <span class="text-blue-600 font-black text-xs bg-blue-50 px-3 py-1 rounded-full">{{ getSiteHours(site.id) }}h</span>
-                            </div>
-                        </div>
-
-                        <div class="bg-white p-6 rounded-[2.5rem] border border-slate-100">
-                            <h3 class="text-xs font-black text-slate-400 uppercase mb-4 tracking-widest">Crew Payroll (Period)</h3>
-                            <div v-for="(h, name) in statsEmpHours" :key="name" class="py-3 border-b border-slate-50 last:border-0 flex justify-between items-center">
-                                <span class="font-bold text-sm text-slate-700">{{ name }}</span>
-                                <span class="text-blue-600 font-black text-sm">{{ h }}h</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- VIEW: HISTORY -->
-                    <div v-if="view === 'history'" class="space-y-3">
-                        <div v-for="log in sortedLogs" :key="log.id" class="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex justify-between items-center">
-                            <div class="space-y-1">
-                                <div class="flex items-center gap-1.5">
-                                    <span class="text-[9px] font-black text-blue-600 bg-blue-50 px-2 py-0.5 rounded uppercase">{{ log.date }}</span>
-                                    <span class="text-[9px] font-black text-slate-400 bg-slate-50 px-2 py-0.5 rounded uppercase">{{ log.h }} HRS</span>
-                                </div>
-                                <p class="font-bold text-slate-800 text-sm">{{ getEmpName(log.eid) }}</p>
-                                <p class="text-[9px] text-slate-400 font-bold uppercase tracking-tight">{{ getSiteName(log.sid) }}</p>
-                            </div>
-                            <button @click="deleteLog(log.id)" class="text-red-200 p-2 active:scale-75 transition-transform">✕</button>
-                        </div>
-                    </div>
-
-                    <!-- VIEW: SETUP -->
-                    <div v-if="view === 'setup'" class="space-y-6">
-                        <div class="space-y-3 px-2">
-                            <h2 class="font-black text-lg">System Management</h2>
-                            <div class="space-y-2">
-                                <div class="flex gap-2">
-                                    <input v-model="news.site" placeholder="Site Name" class="flex-1 bg-white p-4 rounded-2xl border-0 shadow-sm font-bold">
-                                    <button @click="addSite" class="bg-slate-900 text-white px-6 rounded-2xl font-black">+</button>
-                                </div>
-                                <div class="flex gap-2">
-                                    <div class="flex-1 flex flex-col gap-2">
-                                        <input v-model="news.emp" placeholder="Worker Name" class="bg-white p-4 rounded-2xl border-0 shadow-sm font-bold">
-                                        <input v-model="news.empEmail" type="email" placeholder="Email (For Crew Login)" class="bg-white p-4 rounded-2xl border-0 shadow-sm font-bold text-sm text-blue-600">
-                                    </div>
-                                    <button @click="addEmp" class="bg-slate-900 text-white px-6 rounded-2xl font-black">+</button>
-                                </div>
-                            </div>
-                            
-                            <div class="pt-6 space-y-2">
-                                <h3 class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Active Crew</h3>
-                                <div v-for="e in employees" :key="e.id" class="flex justify-between bg-white p-4 rounded-2xl border border-slate-100 items-center shadow-sm">
-                                    <div class="flex flex-col">
-                                        <span class="font-bold text-sm">{{e.name}}</span>
-                                        
-                                        <!-- Editable Email Section -->
-                                        <div v-if="e.email" class="mt-1 flex items-center gap-2">
-                                            <span class="text-[10px] text-blue-500 font-black">{{e.email}}</span>
-                                            <button @click="unlinkEmpEmail(e.id)" class="text-[8px] uppercase font-bold text-slate-400 bg-slate-100 px-2 py-1 rounded-lg active:scale-95 hover:bg-red-50 hover:text-red-500 transition-colors">Edit</button>
-                                        </div>
-                                        <div v-else class="flex gap-2 mt-2">
-                                            <input v-model="empEmails[e.id]" placeholder="Link Email..." class="text-xs bg-slate-50 p-2 rounded-lg border-0 outline-none w-32">
-                                            <button @click="linkEmpEmail(e.id)" class="text-[10px] bg-slate-900 text-white px-2 rounded-lg font-bold">Save</button>
-                                        </div>
-                                    </div>
-                                    <button @click="removeEmp(e.id)" class="text-red-400 text-[10px] font-black uppercase bg-red-50 px-3 py-2 rounded-xl">Delete</button>
-                                </div>
-                            </div>
-
-                            <div class="pt-6 space-y-2">
-                                <h3 class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Active Sites</h3>
-                                <div v-for="s in sites" :key="s.id" class="flex justify-between bg-white p-4 rounded-2xl border border-slate-100 items-center shadow-sm">
-                                    <span class="font-bold text-sm">{{s.name}}</span>
-                                    <button @click="removeSite(s.id)" class="text-red-400 text-[10px] font-black uppercase bg-red-50 px-3 py-2 rounded-xl">Delete</button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </template>
-
-
-                <!-- ========================================== -->
-                <!--               WORKER VIEWS                 -->
-                <!-- ========================================== -->
                 <template v-else>
-                    
-                    <!-- WORKER VIEW: MY HOURS -->
-                    <div v-if="view === 'my_stats'" class="space-y-4">
-                        <div class="flex p-1 bg-slate-200 rounded-2xl sticky top-28 z-10 shadow-sm items-center">
-                            <button @click="statTimeframe = 'Week'; timeOffset = 0" :class="statTimeframe === 'Week' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500'" class="flex-1 py-3 text-xs font-black uppercase rounded-xl transition-all">Week</button>
-                            <div class="flex-1 relative h-full">
-                                <input type="month" v-model="selectedMonth" @input="statTimeframe = 'Month'; timeOffset = 0" class="absolute inset-0 w-full h-full opacity-0 z-20 cursor-pointer">
-                                <div :class="statTimeframe === 'Month' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500'" class="w-full py-3 text-[11px] font-black uppercase rounded-xl transition-all flex items-center justify-center gap-1">
-                                    {{ formatMonth(selectedMonth) }}
-                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M19 9l-7 7-7-7"></path></svg>
+                    <!-- ========================================== -->
+                    <!--               ADMIN VIEWS                  -->
+                    <!-- ========================================== -->
+                    <template v-if="isAdmin">
+                        
+                        <!-- ADMIN VIEW: LOG LABOR -->
+                        <div v-if="view === 'log'" class="space-y-4">
+                            <div class="glass-panel p-6 rounded-[2.5rem] shadow-xl relative overflow-hidden">
+                                <div class="absolute -top-10 -left-10 w-24 h-24 bg-brand-indigo/5 rounded-full blur-2xl pointer-events-none"></div>
+                                <h3 class="text-xs font-black uppercase text-slate-400 mb-5 tracking-widest">Log Labor</h3>
+                                <div class="grid grid-cols-2 gap-4 mb-4">
+                                    <div class="space-y-1.5">
+                                        <label class="text-[9px] font-black text-slate-400 uppercase tracking-widest">Date</label>
+                                        <input type="date" v-model="form.date" class="w-full glass-input rounded-2xl p-4 border-0 text-xs font-bold outline-none text-white transition-all">
+                                    </div>
+                                    <div class="space-y-1.5">
+                                        <label class="text-[9px] font-black text-slate-400 uppercase tracking-widest">Hours to Add</label>
+                                        <input type="number" step="0.5" min="0" v-model="form.hours" class="w-full glass-input rounded-2xl p-4 border-0 text-xs font-bold outline-none text-white transition-all">
+                                    </div>
+                                </div>
+                                
+                                <div class="space-y-1.5 mb-5">
+                                    <label class="text-[9px] font-black text-slate-400 uppercase tracking-widest">Project Site</label>
+                                    <div class="relative">
+                                        <select v-model="form.siteId" class="w-full glass-input rounded-2xl p-4 border-0 font-bold text-xs outline-none appearance-none text-white transition-all">
+                                            <option value="" disabled class="bg-slate-900 text-slate-400">Select Site...</option>
+                                            <option v-for="s in sortedSites" :key="s.id" :value="s.id" class="bg-slate-900 text-slate-100">{{s.name}}</option>
+                                        </select>
+                                        <div class="absolute inset-y-0 right-0 flex items-center pr-4 pointer-events-none text-slate-400">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7"></path></svg>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="space-y-2">
+                                    <label class="text-[9px] font-black text-slate-400 uppercase tracking-widest">Select Crew</label>
+                                    <div class="grid grid-cols-1 gap-2 max-h-60 overflow-y-auto pr-1 custom-scrollbar">
+                                        <button v-for="e in employees" :key="e.id" @click="toggleEmp(e.id)" 
+                                             :class="form.selected.includes(e.id) ? 'bg-gradient-to-r from-brand-indigo to-brand-violet text-white shadow-lg shadow-brand-indigo/10 border-transparent' : 'bg-slate-900/30 text-slate-400 border-slate-800/80'"
+                                             class="p-4 rounded-2xl font-bold text-left flex justify-between items-center transition-all border hover:border-slate-700/80">
+                                            <div class="flex flex-col">
+                                                <span class="text-xs" :class="form.selected.includes(e.id) ? 'text-white' : 'text-slate-200'">{{e.name}}</span>
+                                                <span class="text-[8px] uppercase tracking-wide mt-0.5" :class="form.selected.includes(e.id) ? 'text-indigo-200' : 'text-slate-400'">
+                                                    Daily total: {{ getTodayHours(e.id) }}h
+                                                </span>
+                                            </div>
+                                            <span v-if="form.selected.includes(e.id)" class="bg-white/20 w-5 h-5 rounded-full flex items-center justify-center text-xs">✓</span>
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <button @click="saveLabor" :disabled="!form.siteId || !form.selected.length || loading"
+                                        class="w-full bg-gradient-to-r from-brand-indigo to-brand-violet disabled:from-slate-800 disabled:to-slate-800 disabled:text-slate-500 text-white font-black py-4.5 rounded-2xl mt-8 shadow-xl shadow-brand-indigo/10 active:scale-95 transition-all text-xs tracking-wider">
+                                    {{ loading ? 'SYNCING...' : 'SYNC ENTRIES (' + form.selected.length + ')' }}
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- ADMIN VIEW: JOBS (Revenue) -->
+                        <div v-if="view === 'jobs'" class="space-y-6">
+                            <div v-for="site in sortedSites" :key="site.id" class="glass-panel rounded-[2.5rem] border border-slate-800/80 overflow-hidden shadow-xl">
+                                <div class="p-5 flex justify-between items-center bg-slate-900/60 border-b border-slate-800/60">
+                                    <div class="flex flex-col gap-0.5">
+                                        <span class="font-black uppercase text-xs tracking-wider text-slate-200">{{ site.name }}</span>
+                                    </div>
+                                    <span class="text-md font-black text-transparent bg-clip-text bg-gradient-to-r from-brand-indigo to-brand-violet">€{{ calculateSiteTotal(site.id).toLocaleString() }}</span>
+                                </div>
+                                <div class="p-5 space-y-4">
+                                    <button @click="togglePaid(site.id)" :class="site.isPaid ? 'bg-brand-emerald/10 text-brand-emerald border-brand-emerald/20' : 'bg-brand-amber/10 text-brand-amber border-brand-amber/20'" class="w-full py-2.5 rounded-xl border font-black text-[9px] uppercase tracking-widest transition-all">
+                                        {{ site.isPaid ? '🟢 PAID' : '🔴 UNPAID' }}
+                                    </button>
+
+                                    <!-- Site Yield Snapshot -->
+                                    <div class="bg-slate-950/40 border border-slate-900/60 p-3 rounded-2xl flex justify-between items-center text-center">
+                                        <div class="flex-1 border-r border-slate-800/40">
+                                            <p class="text-[8px] font-black text-slate-500 uppercase tracking-wide">Total Hours</p>
+                                            <p class="text-xs font-black text-slate-200">{{ getAllTimeSiteHours(site.id) }}h</p>
+                                        </div>
+                                        <div class="flex-1">
+                                            <p class="text-[8px] font-black text-slate-500 uppercase tracking-wide">Hourly Yield</p>
+                                            <p class="text-xs font-black text-brand-indigo">€{{ calculateSiteYield(site.id) }}/hr</p>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Revenue Items list -->
+                                    <div class="space-y-2">
+                                        <div v-for="item in (site.pricingItems || [])" :key="item.id" class="flex justify-between items-center border-b border-slate-800/40 pb-2.5">
+                                            <div class="flex flex-col">
+                                                <span class="text-xs font-bold text-slate-200">{{item.desc}}</span>
+                                                <span class="text-[8px] text-slate-500 font-extrabold uppercase mt-0.5">{{item.qty}}{{item.unit}} x €{{item.price}}</span>
+                                            </div>
+                                            <div class="flex items-center gap-3">
+                                                <span class="text-xs font-black text-slate-300">€{{(item.qty * item.price).toLocaleString()}}</span>
+                                                <button @click="removeItemFromSite(site.id, item.id)" class="text-brand-rose/40 hover:text-brand-rose transition-colors p-1 text-xs">✕</button>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Add pricing item form -->
+                                    <div class="bg-slate-900/30 border border-slate-800/40 p-4 rounded-3xl space-y-2">
+                                        <input v-model="priceForm[site.id].desc" placeholder="Work description (e.g. Living Room)" class="w-full glass-input p-3 rounded-xl text-xs font-bold outline-none text-white">
+                                        <div class="grid grid-cols-3 gap-2">
+                                            <input v-model.number="priceForm[site.id].qty" type="number" placeholder="Qty" class="glass-input p-3 rounded-xl text-xs font-bold outline-none text-white">
+                                            <input v-model="priceForm[site.id].unit" placeholder="m2" class="glass-input p-3 rounded-xl text-xs font-bold outline-none text-white uppercase text-center">
+                                            <input v-model.number="priceForm[site.id].price" type="number" placeholder="Price" class="glass-input p-3 rounded-xl text-xs font-bold outline-none text-white">
+                                        </div>
+                                        <button @click="addItemToSite(site.id)" class="w-full bg-slate-800 hover:bg-slate-700 text-slate-300 font-black py-3 rounded-xl text-[9px] uppercase tracking-wider transition-colors mt-1">Add Revenue Item</button>
+                                    </div>
                                 </div>
                             </div>
-                            <button @click="statTimeframe = 'All'" :class="statTimeframe === 'All' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500'" class="flex-1 py-3 text-xs font-black uppercase rounded-xl transition-all">All</button>
                         </div>
 
-                        <div v-if="statTimeframe !== 'All'" class="flex justify-between items-center bg-white p-2 rounded-2xl shadow-sm border border-slate-100">
-                            <button @click="timeOffset--" class="px-4 py-2 bg-slate-50 rounded-xl text-slate-600 font-bold active:scale-95 transition-transform text-[10px] uppercase tracking-wider">← Prev</button>
-                            <span class="text-[10px] font-black text-blue-600 uppercase tracking-widest text-center flex-1">{{ currentTimeLabel }}</span>
-                            <button @click="timeOffset++" class="px-4 py-2 bg-slate-50 rounded-xl text-slate-600 font-bold active:scale-95 transition-transform text-[10px] uppercase tracking-wider" :class="{'opacity-30': timeOffset === 0}" :disabled="timeOffset === 0">Next →</button>
-                        </div>
-
-                        <!-- Big Total -->
-                        <div class="bg-blue-600 p-8 rounded-[2.5rem] shadow-xl text-white text-center">
-                            <h3 class="text-[10px] font-black text-blue-200 uppercase mb-2 tracking-widest">Total Logged Hours</h3>
-                            <p class="text-5xl font-black">{{ myTotalHours }}<span class="text-2xl text-blue-300 ml-1">h</span></p>
-                        </div>
-
-                        <!-- Breakdown -->
-                        <div v-if="mySiteHours.length > 0" class="bg-white p-6 rounded-[2.5rem] border border-slate-100 shadow-sm">
-                            <h3 class="text-xs font-black text-slate-400 uppercase mb-4 tracking-widest">Site Breakdown</h3>
-                            <div v-for="(siteObj, index) in mySiteHours" :key="index" class="py-3 border-b border-slate-50 last:border-0 flex justify-between items-center">
-                                <span class="font-bold text-sm text-slate-700">{{ siteObj.siteName }}</span>
-                                <span class="text-blue-600 font-black text-sm">{{ siteObj.hours }}h</span>
+                        <!-- ADMIN VIEW: STATS -->
+                        <div v-if="view === 'stats'" class="space-y-4">
+                            <!-- Timeframe switches -->
+                            <div class="flex p-1 bg-slate-900/80 border border-slate-800/80 rounded-2xl sticky top-24 z-10 shadow-lg items-center">
+                                <button @click="statTimeframe = 'Week'; timeOffset = 0" :class="statTimeframe === 'Week' ? 'bg-gradient-to-r from-brand-indigo to-brand-violet text-white shadow' : 'text-slate-400'" class="flex-1 py-2.5 text-[10px] font-black uppercase rounded-xl transition-all">Week</button>
+                                <button @click="statTimeframe = 'Month'; timeOffset = 0" :class="statTimeframe === 'Month' ? 'bg-gradient-to-r from-brand-indigo to-brand-violet text-white shadow' : 'text-slate-400'" class="flex-1 py-2.5 text-[10px] font-black uppercase rounded-xl transition-all">Month</button>
+                                <button @click="statTimeframe = 'All'" :class="statTimeframe === 'All' ? 'bg-gradient-to-r from-brand-indigo to-brand-violet text-white shadow' : 'text-slate-400'" class="flex-1 py-2.5 text-[10px] font-black uppercase rounded-xl transition-all">All</button>
                             </div>
-                        </div>
-                        <div v-else class="text-center py-8 text-slate-400 font-bold text-sm">
-                            No hours logged for this period.
-                        </div>
-                    </div>
 
-                    <!-- WORKER VIEW: MY HISTORY -->
-                    <div v-if="view === 'my_history'" class="space-y-3">
-                        <div v-for="log in mySortedLogs" :key="log.id" class="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex justify-between items-center">
-                            <div class="space-y-1">
-                                <div class="flex items-center gap-1.5">
-                                    <span class="text-[9px] font-black text-blue-600 bg-blue-50 px-2 py-0.5 rounded uppercase">{{ log.date }}</span>
-                                    <span class="text-[9px] font-black text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded uppercase">Confirmed</span>
+                            <div v-if="statTimeframe !== 'All'" class="flex justify-between items-center bg-slate-900/40 border border-slate-800/40 p-2 rounded-2xl shadow-sm">
+                                <button @click="timeOffset--" class="px-4 py-2 bg-slate-800/80 hover:bg-slate-700 text-slate-300 font-bold active:scale-95 transition-transform text-[9px] uppercase tracking-wider rounded-xl">← Prev</button>
+                                <span class="text-[9px] font-black text-brand-indigo uppercase tracking-widest text-center flex-1">{{ currentTimeLabel }}</span>
+                                <button @click="timeOffset++" class="px-4 py-2 bg-slate-800/80 hover:bg-slate-700 text-slate-300 font-bold active:scale-95 transition-transform text-[9px] uppercase tracking-wider rounded-xl" :class="{'opacity-30': timeOffset === 0}" :disabled="timeOffset === 0">Next →</button>
+                            </div>
+
+                            <!-- Payroll Status Toggle (Only in Month view) -->
+                            <div v-if="statTimeframe === 'Month'" class="mb-4">
+                                <button @click="togglePayrollPaid(getSelectedMonthStr)" 
+                                        :class="isSelectedMonthPaid ? 'bg-brand-emerald/10 border-brand-emerald/20 text-brand-emerald' : 'bg-brand-rose/10 border-brand-rose/20 text-brand-rose'" 
+                                        class="w-full py-3.5 rounded-2xl border font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 active:scale-95 transition-transform">
+                                    <span v-if="isSelectedMonthPaid">🟢 Crew Payroll: Paid</span>
+                                    <span v-else>🔴 Crew Payroll: Unpaid</span>
+                                </button>
+                            </div>
+
+                            <!-- Revenue Status Card -->
+                            <div class="glass-panel p-6 rounded-[2.5rem] shadow-xl text-center relative overflow-hidden">
+                                <div class="absolute -top-12 -right-12 w-28 h-28 bg-brand-indigo/10 rounded-full blur-2xl"></div>
+                                <h3 class="text-[9px] font-black text-slate-400 uppercase mb-4 tracking-widest">Revenue Status</h3>
+                                <div class="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <p class="text-[8px] font-black text-brand-emerald uppercase tracking-wide">Paid</p>
+                                        <p class="text-xl font-black text-brand-emerald">€{{ statsRevenue.paid.toLocaleString() }}</p>
+                                    </div>
+                                    <div>
+                                        <p class="text-[8px] font-black text-brand-amber uppercase tracking-wide">Owed</p>
+                                        <p class="text-xl font-black text-brand-amber">€{{ statsRevenue.unpaid.toLocaleString() }}</p>
+                                    </div>
                                 </div>
-                                <p class="font-bold text-slate-800 text-sm">{{ getSiteName(log.sid) }}</p>
                             </div>
-                            <span class="text-xl font-black text-blue-600">{{ log.h }}<span class="text-xs text-blue-300">h</span></span>
-                        </div>
-                        <div v-if="mySortedLogs.length === 0" class="text-center py-8 text-slate-400 font-bold text-sm">
-                            No historical logs found.
-                        </div>
-                    </div>
 
+                            <!-- Total Hours per Site -->
+                            <div class="glass-panel p-6 rounded-[2.5rem] shadow-xl">
+                                <h3 class="text-[9px] font-black text-slate-400 uppercase mb-4 tracking-widest">Total Hours per Site</h3>
+                                <div v-for="site in sites" :key="site.id" class="py-3 border-b border-slate-800/40 last:border-0 flex flex-col gap-1.5">
+                                    <div class="flex justify-between items-center">
+                                        <span class="font-bold text-xs text-slate-200">{{ site.name }}</span>
+                                        <span class="text-brand-indigo font-black text-[9px] bg-brand-indigo/10 px-2.5 py-1 rounded-full">{{ getSiteHours(site.id) }}h</span>
+                                    </div>
+                                    <!-- Progress indicator bar -->
+                                    <div class="w-full bg-slate-900 rounded-full h-1.5 overflow-hidden">
+                                        <div class="bg-gradient-to-r from-brand-indigo to-brand-violet h-1.5 rounded-full" :style="{ width: getSiteHoursPercentage(site.id) + '%' }"></div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Crew Payroll/Hours (Period) -->
+                            <div class="glass-panel p-6 rounded-[2.5rem] shadow-xl">
+                                <h3 class="text-[9px] font-black text-slate-400 uppercase mb-4 tracking-widest">Crew Payroll (Period)</h3>
+                                <div v-for="(h, name) in statsEmpHours" :key="name" class="py-3 border-b border-slate-800/40 last:border-0 flex justify-between items-center">
+                                    <span class="font-bold text-xs text-slate-200">{{ name }}</span>
+                                    <span class="text-brand-indigo font-black text-xs bg-brand-indigo/10 px-2.5 py-1 rounded-full">{{ h }}h</span>
+                                </div>
+                                <div v-if="Object.keys(statsEmpHours).length === 0" class="text-center py-6 text-slate-500 text-xs font-semibold">
+                                    No logged crew hours for this period.
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- ADMIN VIEW: HISTORY -->
+                        <div v-if="view === 'history'" class="space-y-3">
+                            <h3 class="text-xs font-black uppercase text-slate-400 tracking-widest px-2 mb-2">Logs Archive</h3>
+                            <div v-for="log in sortedLogs" :key="log.id" class="glass-panel p-4 rounded-2xl shadow-sm flex justify-between items-center">
+                                <div class="space-y-1">
+                                    <div class="flex items-center gap-1.5 flex-wrap">
+                                        <span class="text-[8px] font-black text-brand-indigo bg-brand-indigo/10 px-2.5 py-0.5 rounded uppercase tracking-wider">{{ log.date }}</span>
+                                        <span class="text-[8px] font-black text-slate-400 bg-slate-800 px-2.5 py-0.5 rounded uppercase tracking-wider">{{ log.h }} HRS</span>
+                                    </div>
+                                    <p class="font-bold text-slate-200 text-xs mt-1.5">{{ getEmpName(log.eid) }}</p>
+                                    <p class="text-[9px] text-slate-500 font-extrabold uppercase tracking-wide">{{ getSiteName(log.sid) }}</p>
+                                </div>
+                                <button @click="deleteLog(log.id)" class="text-brand-rose/40 hover:text-brand-rose p-2 active:scale-75 transition-all text-xs">✕</button>
+                            </div>
+                            <div v-if="sortedLogs.length === 0" class="text-center py-12 text-slate-500">
+                                No logs found.
+                            </div>
+                        </div>
+
+                        <!-- ADMIN VIEW: SETUP & SYSTEM -->
+                        <div v-if="view === 'setup'" class="space-y-6">
+                            <div class="space-y-3 px-1">
+                                <h2 class="font-black text-md uppercase tracking-wider text-slate-200">System Management</h2>
+                                
+                                <div class="glass-panel p-5 rounded-3xl space-y-4">
+                                    <h3 class="text-[9px] font-black text-slate-400 uppercase tracking-widest">Add Project Site</h3>
+                                    <div class="flex gap-2">
+                                        <input v-model="news.site" placeholder="Site Name" class="flex-1 glass-input p-3.5 rounded-xl border-0 text-xs font-semibold outline-none text-white">
+                                        <button @click="addSite" class="bg-gradient-to-r from-brand-indigo to-brand-violet text-white px-5 rounded-xl font-black text-xs active:scale-95 transition-all">+</button>
+                                    </div>
+                                </div>
+
+                                <div class="glass-panel p-5 rounded-3xl space-y-3">
+                                    <h3 class="text-[9px] font-black text-slate-400 uppercase tracking-widest">Add Worker</h3>
+                                    <div class="space-y-2">
+                                        <input v-model="news.emp" placeholder="Worker Name" class="w-full glass-input p-3.5 rounded-xl border-0 text-xs font-semibold outline-none text-white">
+                                        <input v-model="news.empEmail" type="email" placeholder="Email (For Crew Login)" class="w-full glass-input p-3.5 rounded-xl border-0 text-xs font-semibold outline-none text-white">
+                                        <button @click="addEmp" class="w-full bg-gradient-to-r from-brand-indigo to-brand-violet text-white py-3.5 rounded-xl font-black text-xs active:scale-95 transition-all uppercase tracking-wider">Create Worker Account</button>
+                                    </div>
+                                </div>
+                                
+                                <div class="space-y-3 pt-4">
+                                    <h3 class="text-[9px] font-black text-slate-400 uppercase tracking-widest pl-2">Active Crew Roster</h3>
+                                    <div v-for="e in employees" :key="e.id" class="glass-panel p-4 rounded-2xl flex flex-col gap-3 shadow-md border-slate-800/80">
+                                        <div class="flex justify-between items-start">
+                                            <div class="flex flex-col">
+                                                <span class="font-bold text-xs text-slate-200">{{e.name}}</span>
+                                            </div>
+                                            <button @click="removeEmp(e.id)" class="text-brand-rose/40 hover:text-brand-rose text-[9px] font-black uppercase bg-brand-rose/10 px-2.5 py-1.5 rounded-xl transition-all">Remove</button>
+                                        </div>
+
+                                        <div class="border-t border-slate-850 pt-2.5">
+                                            <!-- Email settings -->
+                                            <div class="flex flex-col gap-1">
+                                                <label class="text-[8px] font-black uppercase text-slate-500">Linked Login Email</label>
+                                                <div v-if="e.email" class="flex items-center justify-between bg-slate-900/30 p-2 rounded-lg border border-slate-800/50">
+                                                    <span class="text-[9px] text-slate-300 font-bold overflow-hidden text-ellipsis whitespace-nowrap">{{e.email}}</span>
+                                                    <button @click="unlinkEmpEmail(e.id)" class="text-[8px] uppercase font-bold text-brand-indigo hover:underline pl-1">Edit</button>
+                                                </div>
+                                                <div v-else class="flex gap-1">
+                                                    <input v-model="empEmails[e.id]" placeholder="Link email..." class="text-[9px] glass-input p-2 rounded-lg border-0 outline-none w-full text-white">
+                                                    <button @click="linkEmpEmail(e.id)" class="text-[8px] bg-brand-indigo text-white px-2.5 rounded-lg font-bold">Link</button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="space-y-3 pt-6">
+                                    <h3 class="text-[9px] font-black text-slate-400 uppercase tracking-widest pl-2">Active Sites</h3>
+                                    <div v-for="s in sortedSites" :key="s.id" class="glass-panel p-4 rounded-2xl flex justify-between items-center shadow-md border-slate-800/80">
+                                        <span class="font-bold text-xs text-slate-200">{{s.name}}</span>
+                                        <button @click="removeSite(s.id)" class="text-brand-rose/40 hover:text-brand-rose text-[9px] font-black uppercase bg-brand-rose/10 px-2.5 py-1.5 rounded-xl transition-all">Delete</button>
+                                    </div>
+                                </div>
+
+                                <!-- Payroll Status History Section -->
+                                <div class="space-y-3 pt-6">
+                                    <h3 class="text-[9px] font-black text-slate-400 uppercase tracking-widest pl-2">Payroll Status History</h3>
+                                    <div v-for="m in getLast6Months" :key="m.monthStr" class="glass-panel p-4 rounded-2xl flex justify-between items-center shadow-md border-slate-800/80">
+                                        <span class="font-bold text-xs text-slate-200">{{ m.label }}</span>
+                                        <button @click="togglePayrollPaid(m.monthStr)" 
+                                                :class="payrollStatus.find(p => p.id === m.monthStr)?.isPaid ? 'bg-brand-emerald/10 border-brand-emerald/20 text-brand-emerald font-black' : 'bg-brand-rose/10 border-brand-rose/20 text-brand-rose font-black'" 
+                                                class="px-4 py-2 rounded-xl border text-[9px] uppercase tracking-widest active:scale-95 transition-transform">
+                                            {{ payrollStatus.find(p => p.id === m.monthStr)?.isPaid ? 'Paid' : 'Unpaid' }}
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </template>
+
+
+                    <!-- ========================================== -->
+                    <!--               WORKER VIEWS                 -->
+                    <!-- ========================================== -->
+                    <template v-else>
+                        
+                        <!-- WORKER VIEW: MY HOURS STATS -->
+                        <div v-if="view === 'my_stats'" class="space-y-4">
+                            <!-- Period switcher -->
+                            <div class="flex p-1 bg-slate-900/80 border border-slate-800/80 rounded-2xl sticky top-24 z-10 shadow-lg items-center">
+                                <button @click="statTimeframe = 'Week'; timeOffset = 0" :class="statTimeframe === 'Week' ? 'bg-gradient-to-r from-brand-indigo to-brand-violet text-white shadow' : 'text-slate-400'" class="flex-1 py-2.5 text-[10px] font-black uppercase rounded-xl transition-all">Week</button>
+                                <button @click="statTimeframe = 'Month'; timeOffset = 0" :class="statTimeframe === 'Month' ? 'bg-gradient-to-r from-brand-indigo to-brand-violet text-white shadow' : 'text-slate-400'" class="flex-1 py-2.5 text-[10px] font-black uppercase rounded-xl transition-all">Month</button>
+                                <button @click="statTimeframe = 'All'" :class="statTimeframe === 'All' ? 'bg-gradient-to-r from-brand-indigo to-brand-violet text-white shadow' : 'text-slate-400'" class="flex-1 py-2.5 text-[10px] font-black uppercase rounded-xl transition-all">All</button>
+                            </div>
+
+                            <div v-if="statTimeframe !== 'All'" class="flex justify-between items-center bg-slate-900/40 border border-slate-800/40 p-2 rounded-2xl shadow-sm">
+                                <button @click="timeOffset--" class="px-4 py-2 bg-slate-800/80 hover:bg-slate-700 text-slate-300 font-bold active:scale-95 transition-transform text-[9px] uppercase tracking-wider rounded-xl">← Prev</button>
+                                <span class="text-[9px] font-black text-brand-indigo uppercase tracking-widest text-center flex-1">{{ currentTimeLabel }}</span>
+                                <button @click="timeOffset++" class="px-4 py-2 bg-slate-800/80 hover:bg-slate-700 text-slate-300 font-bold active:scale-95 transition-transform text-[9px] uppercase tracking-wider rounded-xl" :class="{'opacity-30': timeOffset === 0}" :disabled="timeOffset === 0">Next →</button>
+                            </div>
+
+                            <!-- Payroll Status Badge (Only in Month view) -->
+                            <div v-if="statTimeframe === 'Month'" class="mb-4">
+                                <div :class="isSelectedMonthPaid ? 'bg-brand-emerald/10 border-brand-emerald/20 text-brand-emerald' : 'bg-brand-rose/10 border-brand-rose/20 text-brand-rose'" 
+                                     class="w-full py-3.5 rounded-2xl border font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-2">
+                                    <span v-if="isSelectedMonthPaid">🟢 Payroll Status: Paid</span>
+                                    <span v-else>🔴 Payroll Status: Unpaid</span>
+                                </div>
+                            </div>
+
+                            <!-- Big Total Hours Card -->
+                            <div class="glass-panel p-8 rounded-[2.5rem] shadow-xl text-center relative overflow-hidden">
+                                <div class="absolute -top-12 -right-12 w-28 h-28 bg-brand-indigo/10 rounded-full blur-2xl"></div>
+                                <h3 class="text-[9px] font-black text-slate-400 uppercase mb-2 tracking-widest">Total Logged Hours</h3>
+                                <p class="text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-brand-indigo to-brand-violet">
+                                    {{ myTotalHours }}<span class="text-xl text-slate-400 ml-1.5 font-bold">HRS</span>
+                                </p>
+                            </div>
+
+                            <!-- Site Breakdown -->
+                            <div v-if="mySiteHours.length > 0" class="glass-panel p-6 rounded-[2.5rem] shadow-xl">
+                                <h3 class="text-[9px] font-black text-slate-400 uppercase mb-4 tracking-widest">Site Breakdown</h3>
+                                <div v-for="(siteObj, index) in mySiteHours" :key="index" class="py-3.5 border-b border-slate-800/40 last:border-0 flex flex-col gap-1.5">
+                                    <div class="flex justify-between items-center">
+                                        <span class="font-bold text-xs text-slate-200">{{ siteObj.siteName }}</span>
+                                        <span class="text-brand-indigo font-black text-xs">{{ siteObj.hours }}h</span>
+                                    </div>
+                                    <div class="w-full bg-slate-900 rounded-full h-1.5 overflow-hidden">
+                                        <div class="bg-gradient-to-r from-brand-indigo to-brand-violet h-1.5 rounded-full" :style="{ width: getWorkerSiteHoursPercentage(siteObj.hours) + '%' }"></div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div v-else class="text-center py-12 text-slate-500">
+                                No hours logged for this period.
+                            </div>
+                        </div>
+
+                        <!-- WORKER VIEW: MY HISTORY -->
+                        <div v-if="view === 'my_history'" class="space-y-3">
+                            <h3 class="text-xs font-black uppercase text-slate-400 tracking-widest px-2 mb-2">History</h3>
+                            
+                            <div v-for="log in mySortedLogs" :key="log.id" class="glass-panel p-4 rounded-2xl shadow-sm flex justify-between items-center">
+                                <div class="space-y-1">
+                                    <div class="flex items-center gap-1.5">
+                                        <span class="text-[8px] font-black text-brand-indigo bg-brand-indigo/10 px-2.5 py-0.5 rounded uppercase tracking-wider">{{ log.date }}</span>
+                                        <span class="text-[8px] font-black text-brand-emerald bg-brand-emerald/10 px-2 py-0.5 rounded uppercase tracking-wider">Confirmed</span>
+                                    </div>
+                                    <h4 class="font-bold text-slate-200 text-xs mt-1.5">{{ getSiteName(log.sid) }}</h4>
+                                </div>
+                                <span class="text-lg font-black text-brand-indigo">{{ log.h }}<span class="text-xs text-slate-500 font-bold ml-0.5">h</span></span>
+                            </div>
+                            
+                            <div v-if="mySortedLogs.length === 0" class="text-center py-12 text-slate-500">
+                                No historical logs found.
+                            </div>
+                        </div>
+
+                    </template>
                 </template>
             </main>
 
@@ -328,35 +522,48 @@
             <!-- ========================================== -->
 
             <!-- ADMIN NAVBAR -->
-            <nav v-if="isAdmin" class="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-xl border-t border-slate-100 px-6 py-4 pb-10 flex justify-between safe-bottom z-40 shadow-lg">
-                <button v-for="t in ['log', 'jobs', 'stats', 'history', 'setup']" :key="t" @click="view = t" :class="{ 'active-nav': view === t }" class="text-slate-300 transition-all flex flex-col items-center">
-                    <div v-if="t==='log'"><svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20"><path d="M17.414 2.586a2 2 0 00-2.828 0L7 10.172V13h2.828l7.586-7.586a2 2 0 000-2.828z"></path><path fill-rule="evenodd" d="M2 6a2 2 0 012-2h4a1 1 0 010 2H4v10h10v-4a1 1 0 112 0v4a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" clip-rule="evenodd"></path></svg></div>
-                    <div v-if="t==='jobs'"><svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20"><path d="M4 4a2 2 0 00-2 2v1h16V6a2 2 0 00-2-2H4z"></path><path fill-rule="evenodd" d="M18 9H2v5a2 2 0 002 2h12a2 2 0 002-2V9zM4 13a1 1 0 011-1h1a1 1 0 110 2H5a1 1 0 01-1-1zm5-1a1 1 0 100 2h1a1 1 0 100-2H9z" clip-rule="evenodd"></path></svg></div>
-                    <div v-if="t==='stats'"><svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20"><path d="M2 11a1 1 0 011-1h2a1 1 0 011 1v5a1 1 0 01-1 1H3a1 1 0 01-1-1v-5zM8 7a1 1 0 011-1h2a1 1 0 011 1v9a1 1 0 01-1 1H9a1 1 0 01-1-1V7zM14 4a1 1 0 011-1h2a1 1 0 011 1v12a1 1 0 01-1 1h-2a1 1 0 01-1-1V4z"></path></svg></div>
-                    <div v-if="t==='history'"><svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd"></path></svg></div>
-                    <div v-if="t==='setup'"><svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.533 1.533 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.533 1.533 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd"></path></svg></div>
-                    <span class="text-[7px] font-black uppercase mt-1">{{ t }}</span>
+            <nav v-if="isAdmin" class="fixed bottom-0 left-0 right-0 bg-slate-950/90 backdrop-blur-xl border-t border-slate-800/80 px-4 py-4 pb-8 flex justify-around safe-bottom z-40 shadow-2xl">
+                <button v-for="t in ['log', 'jobs', 'stats', 'history', 'setup']" :key="t" @click="view = t" :class="{ 'active-nav': view === t }" class="text-slate-500 hover:text-slate-300 transition-all flex flex-col items-center relative py-1">
+                    <div v-if="t==='log'"><svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M17.414 2.586a2 2 0 00-2.828 0L7 10.172V13h2.828l7.586-7.586a2 2 0 000-2.828z"></path><path fill-rule="evenodd" d="M2 6a2 2 0 012-2h4a1 1 0 010 2H4v10h10v-4a1 1 0 112 0v4a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" clip-rule="evenodd"></path></svg></div>
+                    <div v-if="t==='jobs'"><svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M4 4a2 2 0 00-2 2v1h16V6a2 2 0 00-2-2H4z"></path><path fill-rule="evenodd" d="M18 9H2v5a2 2 0 002 2h12a2 2 0 002-2V9zM4 13a1 1 0 011-1h1a1 1 0 110 2H5a1 1 0 01-1-1zm5-1a1 1 0 100 2h1a1 1 0 100-2H9z" clip-rule="evenodd"></path></svg></div>
+                    <div v-if="t==='stats'"><svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M2 11a1 1 0 011-1h2a1 1 0 011 1v5a1 1 0 01-1 1H3a1 1 0 01-1-1v-5zM8 7a1 1 0 011-1h2a1 1 0 011 1v9a1 1 0 01-1 1H9a1 1 0 01-1-1V7zM14 4a1 1 0 011-1h2a1 1 0 011 1v12a1 1 0 01-1 1h-2a1 1 0 01-1-1V4z"></path></svg></div>
+                    <div v-if="t==='history'"><svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd"></path></svg></div>
+                    <div v-if="t==='setup'"><svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.533 1.533 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.533 1.533 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd"></path></svg></div>
+                    <span class="text-[7.5px] font-black uppercase mt-1 tracking-wider">{{ t }}</span>
                 </button>
             </nav>
 
             <!-- WORKER NAVBAR -->
-            <nav v-else class="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-xl border-t border-slate-100 px-12 py-4 pb-10 flex justify-around safe-bottom z-40 shadow-lg">
-                <button @click="view = 'my_stats'" :class="{ 'active-nav': view === 'my_stats' }" class="text-slate-300 transition-all flex flex-col items-center w-24">
-                    <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20"><path d="M2 11a1 1 0 011-1h2a1 1 0 011 1v5a1 1 0 01-1 1H3a1 1 0 01-1-1v-5zM8 7a1 1 0 011-1h2a1 1 0 011 1v9a1 1 0 01-1 1H9a1 1 0 01-1-1V7zM14 4a1 1 0 011-1h2a1 1 0 011 1v12a1 1 0 01-1 1h-2a1 1 0 01-1-1V4z"></path></svg>
+            <nav v-else class="fixed bottom-0 left-0 right-0 bg-slate-950/90 backdrop-blur-xl border-t border-slate-800/80 px-6 py-4 pb-8 flex justify-around safe-bottom z-40 shadow-2xl">
+                <button @click="view = 'my_stats'" :class="{ 'active-nav': view === 'my_stats' }" class="text-slate-500 hover:text-slate-300 transition-all flex flex-col items-center w-24">
+                    <svg class="w-5.5 h-5.5" fill="currentColor" viewBox="0 0 20 20"><path d="M2 11a1 1 0 011-1h2a1 1 0 011 1v5a1 1 0 01-1 1H3a1 1 0 01-1-1v-5zM8 7a1 1 0 011-1h2a1 1 0 011 1v9a1 1 0 01-1 1H9a1 1 0 01-1-1V7zM14 4a1 1 0 011-1h2a1 1 0 011 1v12a1 1 0 01-1 1h-2a1 1 0 01-1-1V4z"></path></svg>
                     <span class="text-[8px] font-black uppercase mt-1 tracking-wider">My Hours</span>
                 </button>
-                <button @click="view = 'my_history'" :class="{ 'active-nav': view === 'my_history' }" class="text-slate-300 transition-all flex flex-col items-center w-24">
-                    <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd"></path></svg>
+                <button @click="view = 'my_history'" :class="{ 'active-nav': view === 'my_history' }" class="text-slate-500 hover:text-slate-300 transition-all flex flex-col items-center w-24">
+                    <svg class="w-5.5 h-5.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd"></path></svg>
                     <span class="text-[8px] font-black uppercase mt-1 tracking-wider">History</span>
                 </button>
             </nav>
         </template>
+
     </div>
 
+    <!-- Firebase Libraries -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, collection, doc, addDoc, updateDoc, deleteDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        
+        // Correct imports for Firestore
+        import { 
+            getFirestore as initFirestore, 
+            collection as fsCollection, 
+            doc as fsDoc, 
+            addDoc as fsAddDoc, 
+            setDoc as fsSetDoc,
+            updateDoc as fsUpdateDoc, 
+            deleteDoc as fsDeleteDoc, 
+            onSnapshot as fsOnSnapshot 
+        } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         const { createApp, ref, reactive, computed, onMounted, watch } = Vue;
 
@@ -371,7 +578,7 @@
 
         const fbApp = initializeApp(firebaseConfig);
         const auth = getAuth(fbApp);
-        const db = getFirestore(fbApp);
+        const db = initFirestore(fbApp);
         const appId = 'sp-creativ-final';
 
         createApp({
@@ -387,13 +594,21 @@
                 const employees = ref([]);
                 const logs = ref([]);
                 
-                const form = ref({ date: new Date().toISOString().split('T')[0], hours: 8, siteId: '', selected: [] });
+                // Form models
+                const form = ref({ 
+                    date: new Date().toISOString().split('T')[0], 
+                    hours: 8, 
+                    siteId: '', 
+                    selected: [] 
+                });
+
                 const news = ref({ site: '', emp: '', empEmail: '' });
                 const empEmails = reactive({});
                 const priceForm = reactive({});
-                
+                const payrollStatus = ref([]);
+
                 // Time Filter Logic
-                const statTimeframe = ref('Month'); // Default to month
+                const statTimeframe = ref('Month');
                 const timeOffset = ref(0);
                 const d = new Date();
                 const selectedMonth = ref(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`);
@@ -409,23 +624,36 @@
                     onAuthStateChanged(auth, (u) => {
                         user.value = u;
                         if(u) startSync();
-                        else loading.value = false;
+                        else {
+                            loading.value = false;
+                        }
                     });
                 });
 
                 const startSync = () => {
-                    onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'sites'), (snap) => {
+                    fsOnSnapshot(fsCollection(db, 'artifacts', appId, 'public', 'data', 'sites'), (snap) => {
                         sites.value = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-                        sites.value.forEach(s => { if(!priceForm[s.id]) priceForm[s.id] = { desc: '', qty: 0, unit: 'm2', price: 0 }; });
+                        sites.value.forEach(s => { 
+                            if(!priceForm[s.id]) {
+                                priceForm[s.id] = { desc: '', qty: 0, unit: 'm2', price: 0 }; 
+                            }
+                        });
                         loading.value = false;
                     });
 
-                    onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'employees'), (snap) => {
+                    fsOnSnapshot(fsCollection(db, 'artifacts', appId, 'public', 'data', 'employees'), (snap) => {
                         employees.value = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+                        employees.value.forEach(e => {
+                            if (e.email) empEmails[e.id] = e.email;
+                        });
                     });
 
-                    onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'logs'), (snap) => {
+                    fsOnSnapshot(fsCollection(db, 'artifacts', appId, 'public', 'data', 'logs'), (snap) => {
                         logs.value = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+                    });
+
+                    fsOnSnapshot(fsCollection(db, 'artifacts', appId, 'public', 'data', 'payroll_status'), (snap) => {
+                        payrollStatus.value = snap.docs.map(d => ({ id: d.id, ...d.data() }));
                     });
                 };
 
@@ -464,6 +692,7 @@
                     if (i > -1) form.value.selected.splice(i, 1); else form.value.selected.push(id);
                 };
 
+                // Get daily logged hours
                 const getTodayHours = (eid) => {
                     return logs.value
                         .filter(l => l.eid === eid && l.date === form.value.date)
@@ -473,15 +702,15 @@
                 const saveLabor = async () => {
                     if (!user.value || !isAdmin.value) return;
                     loading.value = true;
-                    const col = collection(db, 'artifacts', appId, 'public', 'data', 'logs');
+                    const col = fsCollection(db, 'artifacts', appId, 'public', 'data', 'logs');
                     
                     try {
                         for(const eid of form.value.selected) {
-                            await addDoc(col, { 
+                            await fsAddDoc(col, { 
                                 eid, 
                                 sid: form.value.siteId, 
                                 date: form.value.date, 
-                                h: parseFloat(form.value.hours) 
+                                h: parseFloat(form.value.hours)
                             });
                         }
                         form.value.selected = [];
@@ -495,17 +724,25 @@
                 const deleteLog = async (id) => { 
                     if (!user.value || !isAdmin.value) return;
                     if(confirm('Permanently delete this labor entry?')) {
-                        await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'logs', id));
+                        await fsDeleteDoc(fsDoc(db, 'artifacts', appId, 'public', 'data', 'logs', id));
                     }
                 };
 
                 const calculateSiteTotal = (sid) => (sites.value.find(x => x.id === sid)?.pricingItems || []).reduce((a, b) => a + (b.qty * b.price), 0);
 
+                const getAllTimeSiteHours = (sid) => logs.value.filter(l => l.sid === sid).reduce((a, b) => a + b.h, 0);
+
+                const calculateSiteYield = (sid) => {
+                    const rev = calculateSiteTotal(sid);
+                    const hrs = getAllTimeSiteHours(sid);
+                    return hrs > 0 ? Math.round(rev / hrs) : 0;
+                };
+
                 const addItemToSite = async (sid) => {
                     if (!user.value || !isAdmin.value) return;
                     const s = sites.value.find(x => x.id === sid);
                     const items = [...(s.pricingItems || []), { id: Date.now(), ...priceForm[sid] }];
-                    await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'sites', sid), { pricingItems: items });
+                    await fsUpdateDoc(fsDoc(db, 'artifacts', appId, 'public', 'data', 'sites', sid), { pricingItems: items });
                     priceForm[sid].desc = ''; priceForm[sid].qty = 0;
                 };
 
@@ -513,24 +750,29 @@
                     if (!user.value || !isAdmin.value) return;
                     const s = sites.value.find(x => x.id === sid);
                     const items = s.pricingItems.filter(i => i.id !== iid);
-                    await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'sites', sid), { pricingItems: items });
+                    await fsUpdateDoc(fsDoc(db, 'artifacts', appId, 'public', 'data', 'sites', sid), { pricingItems: items });
                 };
 
                 const togglePaid = async (sid) => {
                     if (!user.value || !isAdmin.value) return;
                     const s = sites.value.find(x => x.id === sid);
-                    await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'sites', sid), { isPaid: !s.isPaid });
+                    await fsUpdateDoc(fsDoc(db, 'artifacts', appId, 'public', 'data', 'sites', sid), { isPaid: !s.isPaid });
                 };
 
                 const addSite = async () => { 
                     if (!user.value || !isAdmin.value || !news.value.site) return; 
-                    await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'sites'), { name: news.value.site, isPaid: false, pricingItems: [] }); 
+                    await fsAddDoc(fsCollection(db, 'artifacts', appId, 'public', 'data', 'sites'), { 
+                        name: news.value.site, 
+                        isPaid: false, 
+                        pricingItems: [],
+                        createdAt: Date.now()
+                    }); 
                     news.value.site = ''; 
                 };
 
                 const addEmp = async () => { 
                     if (!user.value || !isAdmin.value || !news.value.emp) return; 
-                    await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'employees'), { 
+                    await fsAddDoc(fsCollection(db, 'artifacts', appId, 'public', 'data', 'employees'), { 
                         name: news.value.emp,
                         email: news.value.empEmail ? news.value.empEmail.trim() : ''
                     }); 
@@ -540,21 +782,20 @@
 
                 const linkEmpEmail = async (id) => {
                     if (!user.value || !isAdmin.value || !empEmails[id]) return;
-                    await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'employees', id), { 
+                    await fsUpdateDoc(fsDoc(db, 'artifacts', appId, 'public', 'data', 'employees', id), { 
                         email: empEmails[id].trim() 
                     });
                 };
 
-                // NEW: Unlink Email Function
                 const unlinkEmpEmail = async (id) => {
                     if (!user.value || !isAdmin.value) return;
-                    await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'employees', id), { 
+                    await fsUpdateDoc(fsDoc(db, 'artifacts', appId, 'public', 'data', 'employees', id), { 
                         email: '' 
                     });
                 };
 
-                const removeSite = async (id) => { if(confirm('Delete site and all related data?')) await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'sites', id)); };
-                const removeEmp = async (id) => { if(confirm('Remove worker from roster?')) await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'employees', id)); };
+                const removeSite = async (id) => { if(confirm('Delete site and all related data?')) await fsDeleteDoc(fsDoc(db, 'artifacts', appId, 'public', 'data', 'sites', id)); };
+                const removeEmp = async (id) => { if(confirm('Remove worker from roster?')) await fsDeleteDoc(fsDoc(db, 'artifacts', appId, 'public', 'data', 'employees', id)); };
 
                 const isDateInTimeframe = (dateStr) => {
                     if (statTimeframe.value === 'All') return true;
@@ -585,7 +826,23 @@
                     return true;
                 };
 
+                // site hours
                 const getSiteHours = (sid) => logs.value.filter(l => l.sid === sid && isDateInTimeframe(l.date)).reduce((a, b) => a + b.h, 0);
+
+                // Max site hours in period for UI percentage calculations
+                const getMaxSiteHours = () => {
+                    const hours = sites.value.map(s => getSiteHours(s.id));
+                    const max = Math.max(...hours);
+                    return max > 0 ? max : 1;
+                };
+
+                const getSiteHoursPercentage = (sid) => {
+                    const h = getSiteHours(sid);
+                    return Math.round((h / getMaxSiteHours()) * 100);
+                };
+
+                const getEmpName = (id) => employees.value.find(e => e.id === id)?.name || '...';
+                const getSiteName = (id) => sites.value.find(s => s.id === id)?.name || '...';
 
                 const currentTimeLabel = computed(() => {
                     if (statTimeframe.value === 'Month') {
@@ -629,6 +886,11 @@
 
                 const myTotalHours = computed(() => mySiteHours.value.reduce((sum, s) => sum + s.hours, 0));
 
+                const getWorkerSiteHoursPercentage = (hours) => {
+                    const total = myTotalHours.value;
+                    return total > 0 ? Math.round((hours / total) * 100) : 0;
+                };
+
                 const mySortedLogs = computed(() => {
                     if (isAdmin.value || !currentUserEmployee.value) return [];
                     return logs.value
@@ -636,12 +898,64 @@
                         .sort((a,b) => new Date(b.date) - new Date(a.date));
                 });
 
+                const getSelectedMonthStr = computed(() => {
+                    const now = new Date();
+                    now.setMonth(now.getMonth() + timeOffset.value);
+                    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+                });
+
+                const isSelectedMonthPaid = computed(() => {
+                    const monthStr = getSelectedMonthStr.value;
+                    const record = payrollStatus.value.find(p => p.id === monthStr);
+                    return record ? record.isPaid : false;
+                });
+
+                const togglePayrollPaid = async (monthStr) => {
+                    if (!user.value || !isAdmin.value) return;
+                    const existing = payrollStatus.value.find(p => p.id === monthStr);
+                    const isPaid = existing ? !existing.isPaid : true;
+                    await fsSetDoc(fsDoc(db, 'artifacts', appId, 'public', 'data', 'payroll_status', monthStr), { isPaid });
+                };
+
+                const getLast6Months = computed(() => {
+                    const list = [];
+                    const now = new Date();
+                    for (let i = 0; i < 6; i++) {
+                        const temp = new Date(now.getFullYear(), now.getMonth() - i, 1);
+                        const monthStr = `${temp.getFullYear()}-${String(temp.getMonth() + 1).padStart(2, '0')}`;
+                        const label = temp.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+                        list.push({ monthStr, label });
+                    }
+                    return list;
+                });
+                const sortedSites = computed(() => {
+                    return [...sites.value].sort((a, b) => {
+                        const logsA = logs.value.filter(l => l.sid === a.id);
+                        const maxTA = logsA.length > 0 ? Math.max(...logsA.map(l => {
+                            const d = new Date(l.date).getTime();
+                            return isNaN(d) ? 0 : d;
+                        })) : 0;
+                        const tA = maxTA || (a.createdAt !== undefined ? a.createdAt : 0);
+
+                        const logsB = logs.value.filter(l => l.sid === b.id);
+                        const maxTB = logsB.length > 0 ? Math.max(...logsB.map(l => {
+                            const d = new Date(l.date).getTime();
+                            return isNaN(d) ? 0 : d;
+                        })) : 0;
+                        const tB = maxTB || (b.createdAt !== undefined ? b.createdAt : 0);
+
+                        return tB - tA;
+                    });
+                });
                 return { 
                     user, authForm, authLoading, authError, handleLogin, handleLogout, view, sites, employees, logs, form, news, priceForm, loading, 
                     statTimeframe, timeOffset, currentTimeLabel, isAdmin, empEmails, selectedMonth, formatMonth,
                     toggleEmp, saveLabor, deleteLog, addItemToSite, removeItemFromSite, togglePaid, addSite, addEmp, removeSite, removeEmp, linkEmpEmail, unlinkEmpEmail,
-                    calculateSiteTotal, getSiteHours, getTodayHours,
-                    mySiteHours, myTotalHours, mySortedLogs,
+                    calculateSiteTotal, getSiteHours, getSiteHoursPercentage, getTodayHours,
+                    getAllTimeSiteHours, calculateSiteYield,
+                    mySiteHours, myTotalHours, mySortedLogs, getWorkerSiteHoursPercentage,
+                    getEmpName, getSiteName,
+                    payrollStatus, getSelectedMonthStr, isSelectedMonthPaid, togglePayrollPaid, getLast6Months, sortedSites,
                     statsEmpHours: computed(() => {
                         const res = {};
                         logs.value.filter(l => isDateInTimeframe(l.date)).forEach(l => {
@@ -660,8 +974,6 @@
                         });
                         return res;
                     }),
-                    getEmpName: (id) => employees.value.find(e => e.id === id)?.name || '...',
-                    getSiteName: (id) => sites.value.find(s => s.id === id)?.name || '...',
                     sortedLogs: computed(() => [...logs.value].sort((a,b) => new Date(b.date) - new Date(a.date)))
                 };
             }
