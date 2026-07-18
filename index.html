@@ -2,7 +2,8 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <!-- Fixed iOS Viewport: added viewport-fit=cover to avoid Safe Area layout calculation loops -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="SP CREATIV">
@@ -11,12 +12,18 @@
     <link rel="icon" type="image/png" href="icon-192.png">
     <meta name="theme-color" content="#030712">
     <title>SP CREATIV | Secure Cloud</title>
+    
     <script>
+        // Non-blocking Service Worker registration: wrapped in a try/catch so it can never crash iOS WebKit
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
-                navigator.serviceWorker.register('./sw.js')
-                    .then(reg => console.log('Service Worker registered successfully:', reg.scope))
-                    .catch(err => console.error('Service Worker registration failed:', err));
+                try {
+                    navigator.serviceWorker.register('./sw.js')
+                        .then(reg => console.log('Service Worker registered successfully:', reg.scope))
+                        .catch(err => console.warn('Service Worker registration skipped/failed:', err));
+                } catch (e) {
+                    console.warn('SW registration failed silently:', e);
+                }
             });
         }
     </script>
@@ -59,10 +66,19 @@
     </script>
     <style>
         [v-cloak] { display: none !important; }
+        
+        /* iOS-Specific Height Fix: forces Safari to respect screen boundaries without hiding key elements */
+        html, body {
+            height: 100%;
+            height: -webkit-fill-available;
+        }
+        
         body { 
             -webkit-tap-highlight-color: transparent; 
             touch-action: manipulation; 
             background-color: #030712;
+            -webkit-user-select: none;
+            user-select: none;
         }
         .active-nav { 
             color: #8b5cf6; 
@@ -200,7 +216,7 @@
                                     <div class="relative">
                                         <select v-model="form.siteId" class="w-full glass-input rounded-2xl p-4 border-0 font-bold text-xs outline-none appearance-none text-white transition-all">
                                             <option value="" disabled class="bg-slate-900 text-slate-400">Select Site...</option>
-                                            <option v-for="s in sortedSites" :key="s.id" :value="s.id" class="bg-slate-900 text-slate-100">{{s.name}}</option>
+                                            <option v-for="s in activeSites" :key="s.id" :value="s.id" class="bg-slate-900 text-slate-100">{{s.name}}</option>
                                         </select>
                                         <div class="absolute inset-y-0 right-0 flex items-center pr-4 pointer-events-none text-slate-400">
                                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7"></path></svg>
@@ -211,7 +227,7 @@
                                 <div class="space-y-2">
                                     <label class="text-[9px] font-black text-slate-400 uppercase tracking-widest">Select Crew</label>
                                     <div class="grid grid-cols-1 gap-2 max-h-60 overflow-y-auto pr-1 custom-scrollbar">
-                                        <button v-for="e in employees" :key="e.id" @click="toggleEmp(e.id)" 
+                                        <button v-for="e in activeEmployees" :key="e.id" @click="toggleEmp(e.id)" 
                                              :class="form.selected.includes(e.id) ? 'bg-gradient-to-r from-brand-indigo to-brand-violet text-white shadow-lg shadow-brand-indigo/10 border-transparent' : 'bg-slate-900/30 text-slate-400 border-slate-800/80'"
                                              class="p-4 rounded-2xl font-bold text-left flex justify-between items-center transition-all border hover:border-slate-700/80">
                                             <div class="flex flex-col">
@@ -225,25 +241,37 @@
                                     </div>
                                 </div>
 
-                                <button @click="saveLabor" :disabled="!form.siteId || !form.selected.length || loading"
-                                        class="w-full bg-gradient-to-r from-brand-indigo to-brand-violet disabled:from-slate-800 disabled:to-slate-800 disabled:text-slate-500 text-white font-black py-4.5 rounded-2xl mt-8 shadow-xl shadow-brand-indigo/10 active:scale-95 transition-all text-xs tracking-wider">
+                                <!-- STRICT ZERO-HOUR PREVENTION -->
+                                <button @click="saveLabor" :disabled="!form.siteId || !form.selected.length || !form.hours || form.hours <= 0 || loading"
+                                        class="w-full bg-gradient-to-r from-brand-indigo to-brand-violet disabled:from-slate-800 disabled:to-slate-800 disabled:text-slate-500 text-white font-black py-4 rounded-2xl mt-8 shadow-xl shadow-brand-indigo/10 active:scale-95 transition-all text-xs tracking-wider">
                                     {{ loading ? 'SYNCING...' : 'SYNC ENTRIES (' + form.selected.length + ')' }}
                                 </button>
                             </div>
                         </div>
 
-                        <!-- ADMIN VIEW: JOBS (Revenue) -->
+                        <!-- ADMIN VIEW: JOBS (Revenue & Partial Payments Upgrades) -->
                         <div v-if="view === 'jobs'" class="space-y-6">
-                            <div v-for="site in sortedSites" :key="site.id" class="glass-panel rounded-[2.5rem] border border-slate-800/80 overflow-hidden shadow-xl">
-                                <div class="p-5 flex justify-between items-center bg-slate-900/60 border-b border-slate-800/60">
-                                    <div class="flex flex-col gap-0.5">
+                            <div v-for="site in activeSites" :key="site.id" class="glass-panel rounded-[2.5rem] border border-slate-800/80 overflow-hidden shadow-xl">
+                                <div class="p-5 flex justify-between items-center bg-slate-900/60 border-b border-slate-800/60 flex-wrap gap-2">
+                                    <div class="flex flex-col">
                                         <span class="font-black uppercase text-xs tracking-wider text-slate-200">{{ site.name }}</span>
+                                        <!-- Outstanding/Contract Breakdown Subtitle -->
+                                        <span v-if="!site.isPaid && calculateSiteOwed(site.id) > 0" class="text-[9px] text-brand-rose font-extrabold uppercase mt-1 tracking-wider">
+                                            €{{ calculateSiteOwed(site.id).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2}) }} Outstanding
+                                        </span>
                                     </div>
-                                    <span class="text-md font-black text-transparent bg-clip-text bg-gradient-to-r from-brand-indigo to-brand-violet">€{{ calculateSiteTotal(site.id).toLocaleString() }}</span>
+                                    <div class="text-right">
+                                        <span class="text-sm font-black text-transparent bg-clip-text bg-gradient-to-r from-brand-indigo to-brand-violet block">
+                                            €{{ calculateSitePaid(site.id).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2}) }} Collected
+                                        </span>
+                                        <span v-if="calculateSiteOwed(site.id) > 0" class="text-[8.5px] text-slate-500 font-extrabold block uppercase mt-0.5 tracking-wider">
+                                            of €{{ calculateSiteTotal(site.id).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2}) }} Contract
+                                        </span>
+                                    </div>
                                 </div>
                                 <div class="p-5 space-y-4">
                                     <button @click="togglePaid(site.id)" :class="site.isPaid ? 'bg-brand-emerald/10 text-brand-emerald border-brand-emerald/20' : 'bg-brand-amber/10 text-brand-amber border-brand-amber/20'" class="w-full py-2.5 rounded-xl border font-black text-[9px] uppercase tracking-widest transition-all">
-                                        {{ site.isPaid ? '🟢 PAID' : '🔴 UNPAID' }}
+                                        {{ site.isPaid ? '🟢 FULLY PAID & SETTLED' : '🔴 PARTIALLY COLLECTING / UNPAID' }}
                                     </button>
 
                                     <!-- Site Yield Snapshot -->
@@ -258,29 +286,48 @@
                                         </div>
                                     </div>
                                     
-                                    <!-- Revenue Items list -->
-                                    <div class="space-y-2">
-                                        <div v-for="item in (site.pricingItems || [])" :key="item.id" class="flex justify-between items-center border-b border-slate-800/40 pb-2.5">
-                                            <div class="flex flex-col">
-                                                <span class="text-xs font-bold text-slate-200">{{item.desc}}</span>
-                                                <span class="text-[8px] text-slate-500 font-extrabold uppercase mt-0.5">{{item.qty}}{{item.unit}} x €{{item.price}}</span>
+                                    <!-- Revenue Items list with Milestone Collection slider -->
+                                    <div class="space-y-3">
+                                        <div v-for="item in (site.pricingItems || [])" :key="item.id" class="flex flex-col border-b border-slate-800/40 pb-3">
+                                            <div class="flex justify-between items-start">
+                                                <div class="flex flex-col">
+                                                    <span class="text-xs font-bold text-slate-200">{{item.desc}}</span>
+                                                    <span class="text-[8.5px] text-slate-500 font-extrabold uppercase mt-0.5">
+                                                        {{item.qty}}{{item.unit}} x €{{item.price}} 
+                                                        <span v-if="!site.isPaid" class="text-brand-indigo ml-1">
+                                                            (€{{ ((parseFloat(item.qty)||0) * (parseFloat(item.price)||0) * ((parseFloat(item.paidPercent)||0)/100)).toLocaleString(undefined, {maximumFractionDigits: 2}) }} Paid)
+                                                        </span>
+                                                    </span>
+                                                </div>
+                                                <div class="flex items-center gap-3">
+                                                    <span class="text-xs font-black text-slate-300">€{{((parseFloat(item.qty)||0) * (parseFloat(item.price)||0)).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}}</span>
+                                                    <button @click="removeItemFromSite(site.id, item.id)" class="text-brand-rose/40 hover:text-brand-rose transition-colors p-1 text-xs">✕</button>
+                                                </div>
                                             </div>
-                                            <div class="flex items-center gap-3">
-                                                <span class="text-xs font-black text-slate-300">€{{(item.qty * item.price).toLocaleString()}}</span>
-                                                <button @click="removeItemFromSite(site.id, item.id)" class="text-brand-rose/40 hover:text-brand-rose transition-colors p-1 text-xs">✕</button>
+                                            <!-- Milestone Selector -->
+                                            <div v-if="!site.isPaid" class="flex items-center justify-between mt-2.5 bg-slate-950/40 px-3 py-2 rounded-xl border border-slate-900/60">
+                                                <span class="text-[8px] font-black uppercase text-slate-400 tracking-wider">Milestone Paid:</span>
+                                                <div class="flex gap-1">
+                                                    <button v-for="pct in [0, 25, 50, 75, 100]" :key="pct"
+                                                            @click="updateItemPaymentPercent(site.id, item.id, pct)"
+                                                            :class="(parseFloat(item.paidPercent)||0) === pct ? 'bg-gradient-to-r from-brand-indigo to-brand-violet text-white font-extrabold shadow' : 'bg-slate-800/40 text-slate-400'"
+                                                            class="text-[7.5px] px-2 py-0.5 rounded-md active:scale-95 transition-all">
+                                                        {{ pct }}%
+                                                    </button>
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
 
-                                    <!-- Add pricing item form -->
-                                    <div class="bg-slate-900/30 border border-slate-800/40 p-4 rounded-3xl space-y-2">
+                                    <!-- Add pricing item form (Crash proofed) -->
+                                    <div v-if="priceForm[site.id]" class="bg-slate-900/30 border border-slate-800/40 p-4 rounded-3xl space-y-2">
                                         <input v-model="priceForm[site.id].desc" placeholder="Work description (e.g. Living Room)" class="w-full glass-input p-3 rounded-xl text-xs font-bold outline-none text-white">
                                         <div class="grid grid-cols-3 gap-2">
-                                            <input v-model.number="priceForm[site.id].qty" type="number" placeholder="Qty" class="glass-input p-3 rounded-xl text-xs font-bold outline-none text-white">
+                                            <input v-model.number="priceForm[site.id].qty" type="number" placeholder="Qty" class="glass-input p-3 rounded-xl text-xs font-bold outline-none text-white text-center">
                                             <input v-model="priceForm[site.id].unit" placeholder="m2" class="glass-input p-3 rounded-xl text-xs font-bold outline-none text-white uppercase text-center">
-                                            <input v-model.number="priceForm[site.id].price" type="number" placeholder="Price" class="glass-input p-3 rounded-xl text-xs font-bold outline-none text-white">
+                                            <input v-model.number="priceForm[site.id].price" type="number" placeholder="Price" class="glass-input p-3 rounded-xl text-xs font-bold outline-none text-white text-center">
                                         </div>
-                                        <button @click="addItemToSite(site.id)" class="w-full bg-slate-800 hover:bg-slate-700 text-slate-300 font-black py-3 rounded-xl text-[9px] uppercase tracking-wider transition-colors mt-1">Add Revenue Item</button>
+                                        <button @click="addItemToSite(site.id)" class="w-full bg-slate-800 hover:bg-slate-700 text-slate-300 font-black py-3 rounded-xl text-[9px] uppercase tracking-wider transition-colors mt-1 active:scale-95">Add Revenue Item</button>
                                     </div>
                                 </div>
                             </div>
@@ -297,7 +344,15 @@
 
                             <div v-if="statTimeframe !== 'All'" class="flex justify-between items-center bg-slate-900/40 border border-slate-800/40 p-2 rounded-2xl shadow-sm">
                                 <button @click="timeOffset--" class="px-4 py-2 bg-slate-800/80 hover:bg-slate-700 text-slate-300 font-bold active:scale-95 transition-transform text-[9px] uppercase tracking-wider rounded-xl">← Prev</button>
-                                <span class="text-[9px] font-black text-brand-indigo uppercase tracking-widest text-center flex-1">{{ currentTimeLabel }}</span>
+                                
+                                <!-- Month Picker linked to offset -->
+                                <div class="flex-1 relative flex justify-center items-center h-full group">
+                                    <input v-if="statTimeframe === 'Month'" type="month" v-model="selectedMonth" class="absolute inset-0 w-full h-full opacity-0 z-20 cursor-pointer">
+                                    <span class="text-[9px] font-black text-brand-indigo uppercase tracking-widest text-center group-hover:text-brand-violet transition-colors">
+                                        {{ currentTimeLabel }} <span v-if="statTimeframe === 'Month'" class="text-[8px] ml-1">▼</span>
+                                    </span>
+                                </div>
+
                                 <button @click="timeOffset++" class="px-4 py-2 bg-slate-800/80 hover:bg-slate-700 text-slate-300 font-bold active:scale-95 transition-transform text-[9px] uppercase tracking-wider rounded-xl" :class="{'opacity-30': timeOffset === 0}" :disabled="timeOffset === 0">Next →</button>
                             </div>
 
@@ -311,26 +366,86 @@
                                 </button>
                             </div>
 
-                            <!-- Revenue Status Card -->
+                            <!-- Full Financial Dashboard (Now reflects Milestone Payments) -->
                             <div class="glass-panel p-6 rounded-[2.5rem] shadow-xl text-center relative overflow-hidden">
                                 <div class="absolute -top-12 -right-12 w-28 h-28 bg-brand-indigo/10 rounded-full blur-2xl"></div>
-                                <h3 class="text-[9px] font-black text-slate-400 uppercase mb-4 tracking-widest">Revenue Status</h3>
+                                <h3 class="text-[9px] font-black text-slate-400 uppercase mb-4 tracking-widest">Financial Overview</h3>
+                                
+                                <div class="grid grid-cols-2 gap-4 border-b border-slate-800/60 pb-5 mb-5">
+                                    <div>
+                                        <p class="text-[8px] font-black text-brand-emerald uppercase tracking-wide">Revenue Paid (Collected)</p>
+                                        <p class="text-xl font-black text-brand-emerald">€{{ statsRevenue.paid.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2}) }}</p>
+                                    </div>
+                                    <div>
+                                        <p class="text-[8px] font-black text-brand-amber uppercase tracking-wide">Revenue Owed (Balance)</p>
+                                        <p class="text-xl font-black text-brand-amber">€{{ statsRevenue.unpaid.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2}) }}</p>
+                                    </div>
+                                </div>
+
                                 <div class="grid grid-cols-2 gap-4">
                                     <div>
-                                        <p class="text-[8px] font-black text-brand-emerald uppercase tracking-wide">Paid</p>
-                                        <p class="text-xl font-black text-brand-emerald">€{{ statsRevenue.paid.toLocaleString() }}</p>
+                                        <p class="text-[8px] font-black text-brand-rose uppercase tracking-wide">Labor Cost</p>
+                                        <p class="text-xl font-black text-brand-rose">€{{ statsRevenue.laborCost.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2}) }}</p>
                                     </div>
                                     <div>
-                                        <p class="text-[8px] font-black text-brand-amber uppercase tracking-wide">Owed</p>
-                                        <p class="text-xl font-black text-brand-amber">€{{ statsRevenue.unpaid.toLocaleString() }}</p>
+                                        <p class="text-[8px] font-black text-brand-indigo uppercase tracking-wide">Net Profit</p>
+                                        <p class="text-xl font-black text-brand-indigo">€{{ statsRevenue.profit.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2}) }}</p>
                                     </div>
+                                </div>
+                            </div>
+
+                            <!-- Weekly Work Map Visual Indicator -->
+                            <div class="glass-panel p-6 rounded-[2.5rem] shadow-xl relative overflow-hidden">
+                                <h3 class="text-[9px] font-black text-slate-400 uppercase mb-4 tracking-widest">
+                                    {{ statTimeframe === 'Week' ? 'Weekly Work Tracker' : 'Weekday Work Trends' }}
+                                </h3>
+                                
+                                <!-- Weekly visual bubbles for 'Week' view -->
+                                <div v-if="statTimeframe === 'Week'" class="grid grid-cols-7 gap-2 text-center">
+                                    <div v-for="day in weeklyTrack" :key="day.dateStr" class="flex flex-col items-center">
+                                        <span class="text-[9px] font-extrabold text-slate-400 uppercase mb-1.5">{{ day.dayName }}</span>
+                                        <div :class="day.worked ? 'bg-gradient-to-br from-brand-indigo to-brand-violet text-white shadow-[0_0_15px_rgba(99,102,241,0.5)] border-transparent' : 'border border-slate-800 text-slate-600'" 
+                                             class="w-10 h-10 rounded-full flex flex-col justify-center items-center text-center transition-all">
+                                            <span class="text-[10px] font-black leading-none">{{ day.dayNum }}</span>
+                                            <span v-if="day.worked" class="text-[7px] font-extrabold mt-0.5">{{ day.hours }}h</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Weekday bar charts for 'Month' & 'All' views -->
+                                <div v-else class="space-y-2.5">
+                                    <div v-for="day in weekdayDistribution" :key="day.day" class="flex items-center gap-3">
+                                        <span class="text-[10px] font-black text-slate-400 w-8 uppercase">{{ day.day }}</span>
+                                        <div class="flex-1 bg-slate-900 rounded-full h-2.5 overflow-hidden border border-slate-800/40">
+                                            <div class="bg-gradient-to-r from-brand-indigo to-brand-violet h-full rounded-full" 
+                                                 :style="{ width: day.percentage + '%' }"></div>
+                                        </div>
+                                        <span class="text-[10px] font-bold text-slate-300 w-10 text-right">{{ day.hours }}h</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Daily Days Worked Breakdown -->
+                            <div class="glass-panel p-6 rounded-[2.5rem] shadow-xl">
+                                <div class="flex justify-between items-center mb-4">
+                                    <h3 class="text-[9px] font-black text-slate-400 uppercase tracking-widest">Daily Breakdown</h3>
+                                    <span class="text-[8px] font-black text-brand-indigo bg-brand-indigo/10 px-2 py-0.5 rounded uppercase">{{ dailyBreakdown.length }} Days Active</span>
+                                </div>
+                                <div class="space-y-2 max-h-56 overflow-y-auto custom-scrollbar pr-2">
+                                    <div v-for="day in dailyBreakdown" :key="day.date" class="flex justify-between items-center p-3 bg-slate-900/40 rounded-2xl border border-slate-800/40">
+                                        <span class="font-bold text-xs text-slate-200">{{ day.displayDate }}</span>
+                                        <span class="text-brand-indigo font-black text-xs">{{ day.hours }}h</span>
+                                    </div>
+                                </div>
+                                <div v-if="dailyBreakdown.length === 0" class="text-center py-4 text-slate-500 text-xs font-semibold">
+                                    No work logged in this period.
                                 </div>
                             </div>
 
                             <!-- Total Hours per Site -->
                             <div class="glass-panel p-6 rounded-[2.5rem] shadow-xl">
                                 <h3 class="text-[9px] font-black text-slate-400 uppercase mb-4 tracking-widest">Total Hours per Site</h3>
-                                <div v-for="site in sites" :key="site.id" class="py-3 border-b border-slate-800/40 last:border-0 flex flex-col gap-1.5">
+                                <div v-for="site in sites" :key="site.id" v-show="getSiteHours(site.id) > 0" class="py-3 border-b border-slate-800/40 last:border-0 flex flex-col gap-1.5">
                                     <div class="flex justify-between items-center">
                                         <span class="font-bold text-xs text-slate-200">{{ site.name }}</span>
                                         <span class="text-brand-indigo font-black text-[9px] bg-brand-indigo/10 px-2.5 py-1 rounded-full">{{ getSiteHours(site.id) }}h</span>
@@ -345,9 +460,15 @@
                             <!-- Crew Payroll/Hours (Period) -->
                             <div class="glass-panel p-6 rounded-[2.5rem] shadow-xl">
                                 <h3 class="text-[9px] font-black text-slate-400 uppercase mb-4 tracking-widest">Crew Payroll (Period)</h3>
-                                <div v-for="(h, name) in statsEmpHours" :key="name" class="py-3 border-b border-slate-800/40 last:border-0 flex justify-between items-center">
-                                    <span class="font-bold text-xs text-slate-200">{{ name }}</span>
-                                    <span class="text-brand-indigo font-black text-xs bg-brand-indigo/10 px-2.5 py-1 rounded-full">{{ h }}h</span>
+                                <div v-for="(data, name) in statsEmpHours" :key="name" class="py-3 border-b border-slate-800/40 last:border-0 flex justify-between items-center">
+                                    <div class="flex flex-col">
+                                        <span class="font-bold text-xs text-slate-200">{{ name }}</span>
+                                        <span class="text-[9px] text-slate-500 uppercase font-black mt-0.5">€{{ data.rate }}/hr</span>
+                                    </div>
+                                    <div class="text-right">
+                                        <span class="block text-brand-indigo font-black text-xs">{{ data.hours }}h</span>
+                                        <span class="block text-slate-400 font-bold text-[10px]">€{{ (data.hours * data.rate).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2}) }}</span>
+                                    </div>
                                 </div>
                                 <div v-if="Object.keys(statsEmpHours).length === 0" class="text-center py-6 text-slate-500 text-xs font-semibold">
                                     No logged crew hours for this period.
@@ -358,19 +479,36 @@
                         <!-- ADMIN VIEW: HISTORY -->
                         <div v-if="view === 'history'" class="space-y-3">
                             <h3 class="text-xs font-black uppercase text-slate-400 tracking-widest px-2 mb-2">Logs Archive</h3>
-                            <div v-for="log in sortedLogs" :key="log.id" class="glass-panel p-4 rounded-2xl shadow-sm flex justify-between items-center">
+                            
+                            <!-- History Filters -->
+                            <div class="flex gap-2 mb-4 overflow-x-auto pb-2 custom-scrollbar">
+                                <select v-model="historyFilters.eid" class="glass-input px-4 py-3 rounded-2xl text-[9px] uppercase tracking-wider font-black outline-none flex-1 text-white">
+                                    <option value="" class="bg-slate-900">All Workers</option>
+                                    <option v-for="e in employees" :key="e.id" :value="e.id" class="bg-slate-900">{{e.name}}</option>
+                                </select>
+                                <select v-model="historyFilters.sid" class="glass-input px-4 py-3 rounded-2xl text-[9px] uppercase tracking-wider font-black outline-none flex-1 text-white">
+                                    <option value="" class="bg-slate-900">All Sites</option>
+                                    <option v-for="s in sites" :key="s.id" :value="s.id" class="bg-slate-900">{{s.name}}</option>
+                                </select>
+                            </div>
+
+                            <div v-for="log in filteredLogs" :key="log.id" class="glass-panel p-4 rounded-2xl shadow-sm flex justify-between items-center">
                                 <div class="space-y-1">
                                     <div class="flex items-center gap-1.5 flex-wrap">
                                         <span class="text-[8px] font-black text-brand-indigo bg-brand-indigo/10 px-2.5 py-0.5 rounded uppercase tracking-wider">{{ log.date }}</span>
-                                        <span class="text-[8px] font-black text-slate-400 bg-slate-800 px-2.5 py-0.5 rounded uppercase tracking-wider">{{ log.h }} HRS</span>
+                                        <span class="text-[8px] font-black text-slate-400 bg-slate-800 px-2.5 py-0.5 rounded uppercase tracking-wider">{{ parseFloat(log.h) || 0 }} HRS</span>
                                     </div>
                                     <p class="font-bold text-slate-200 text-xs mt-1.5">{{ getEmpName(log.eid) }}</p>
                                     <p class="text-[9px] text-slate-500 font-extrabold uppercase tracking-wide">{{ getSiteName(log.sid) }}</p>
                                 </div>
-                                <button @click="deleteLog(log.id)" class="text-brand-rose/40 hover:text-brand-rose p-2 active:scale-75 transition-all text-xs">✕</button>
+                                <button @click="deleteLog(log.id)" 
+                                    :class="deletingLogId === log.id ? 'bg-brand-rose text-white px-3 py-1.5 rounded-lg text-[9px] font-black uppercase' : 'text-brand-rose/40 hover:text-brand-rose p-2 text-xs font-black'"
+                                    class="active:scale-95 transition-all">
+                                    {{ deletingLogId === log.id ? 'Confirm?' : '✕' }}
+                                </button>
                             </div>
-                            <div v-if="sortedLogs.length === 0" class="text-center py-12 text-slate-500">
-                                No logs found.
+                            <div v-if="filteredLogs.length === 0" class="text-center py-12 text-slate-500 text-xs font-bold">
+                                No logs match criteria.
                             </div>
                         </div>
 
@@ -382,7 +520,7 @@
                                 <div class="glass-panel p-5 rounded-3xl space-y-4">
                                     <h3 class="text-[9px] font-black text-slate-400 uppercase tracking-widest">Add Project Site</h3>
                                     <div class="flex gap-2">
-                                        <input v-model="news.site" placeholder="Site Name" class="flex-1 glass-input p-3.5 rounded-xl border-0 text-xs font-semibold outline-none text-white">
+                                        <input v-model="news.site" placeholder="Site Name" class="flex-1 glass-input p-3.5 rounded-xl border-0 text-xs font-semibold outline-none text-white uppercase">
                                         <button @click="addSite" class="bg-gradient-to-r from-brand-indigo to-brand-violet text-white px-5 rounded-xl font-black text-xs active:scale-95 transition-all">+</button>
                                     </div>
                                 </div>
@@ -390,20 +528,36 @@
                                 <div class="glass-panel p-5 rounded-3xl space-y-3">
                                     <h3 class="text-[9px] font-black text-slate-400 uppercase tracking-widest">Add Worker</h3>
                                     <div class="space-y-2">
-                                        <input v-model="news.emp" placeholder="Worker Name" class="w-full glass-input p-3.5 rounded-xl border-0 text-xs font-semibold outline-none text-white">
+                                        <div class="flex gap-2">
+                                            <input v-model="news.emp" placeholder="Worker Name" class="flex-1 glass-input p-3.5 rounded-xl border-0 text-xs font-semibold outline-none text-white">
+                                            <input v-model.number="news.empRate" type="number" placeholder="€/hr" class="w-20 glass-input p-3.5 rounded-xl border-0 text-xs font-semibold outline-none text-white text-center">
+                                        </div>
                                         <input v-model="news.empEmail" type="email" placeholder="Email (For Crew Login)" class="w-full glass-input p-3.5 rounded-xl border-0 text-xs font-semibold outline-none text-white">
-                                        <button @click="addEmp" class="w-full bg-gradient-to-r from-brand-indigo to-brand-violet text-white py-3.5 rounded-xl font-black text-xs active:scale-95 transition-all uppercase tracking-wider">Create Worker Account</button>
+                                        <button @click="addEmp" class="w-full bg-gradient-to-r from-brand-indigo to-brand-violet text-white py-3.5 rounded-xl font-black text-xs active:scale-95 transition-all uppercase tracking-wider mt-1">Create Worker Account</button>
                                     </div>
                                 </div>
                                 
                                 <div class="space-y-3 pt-4">
                                     <h3 class="text-[9px] font-black text-slate-400 uppercase tracking-widest pl-2">Active Crew Roster</h3>
-                                    <div v-for="e in employees" :key="e.id" class="glass-panel p-4 rounded-2xl flex flex-col gap-3 shadow-md border-slate-800/80">
+                                    <div v-for="e in activeEmployees" :key="e.id" class="glass-panel p-4 rounded-2xl flex flex-col gap-3 shadow-md border-slate-800/80">
                                         <div class="flex justify-between items-start">
                                             <div class="flex flex-col">
-                                                <span class="font-bold text-xs text-slate-200">{{e.name}}</span>
+                                                <div class="flex items-center gap-2 mb-1">
+                                                    <span class="font-bold text-xs text-slate-200">{{e.name}}</span>
+                                                    <!-- Editable Rate Input -->
+                                                    <div class="flex items-center glass-input rounded-lg px-2 py-0.5">
+                                                        <span class="text-[9px] font-black text-slate-400">€</span>
+                                                        <input v-model.number="empRates[e.id]" type="number" class="w-8 bg-transparent text-[10px] font-black border-0 outline-none text-center text-white" @blur="updateEmpRate(e.id)">
+                                                        <span class="text-[9px] font-black text-slate-400">/hr</span>
+                                                    </div>
+                                                </div>
                                             </div>
-                                            <button @click="removeEmp(e.id)" class="text-brand-rose/40 hover:text-brand-rose text-[9px] font-black uppercase bg-brand-rose/10 px-2.5 py-1.5 rounded-xl transition-all">Remove</button>
+                                            <!-- Archive Button -->
+                                            <button @click="archiveEmp(e.id)" 
+                                                :class="deletingEmpId === e.id ? 'bg-brand-rose text-white' : 'text-brand-rose/40 bg-brand-rose/10 hover:text-brand-rose'"
+                                                class="text-[9px] font-black uppercase px-2.5 py-1.5 rounded-xl transition-all">
+                                                {{ deletingEmpId === e.id ? 'Confirm?' : 'Archive' }}
+                                            </button>
                                         </div>
 
                                         <div class="border-t border-slate-850 pt-2.5">
@@ -412,7 +566,7 @@
                                                 <label class="text-[8px] font-black uppercase text-slate-500">Linked Login Email</label>
                                                 <div v-if="e.email" class="flex items-center justify-between bg-slate-900/30 p-2 rounded-lg border border-slate-800/50">
                                                     <span class="text-[9px] text-slate-300 font-bold overflow-hidden text-ellipsis whitespace-nowrap">{{e.email}}</span>
-                                                    <button @click="unlinkEmpEmail(e.id)" class="text-[8px] uppercase font-bold text-brand-indigo hover:underline pl-1">Edit</button>
+                                                    <button @click="unlinkEmpEmail(e.id)" class="text-[8px] uppercase font-bold text-brand-rose hover:underline pl-1">Clear</button>
                                                 </div>
                                                 <div v-else class="flex gap-1">
                                                     <input v-model="empEmails[e.id]" placeholder="Link email..." class="text-[9px] glass-input p-2 rounded-lg border-0 outline-none w-full text-white">
@@ -425,9 +579,13 @@
 
                                 <div class="space-y-3 pt-6">
                                     <h3 class="text-[9px] font-black text-slate-400 uppercase tracking-widest pl-2">Active Sites</h3>
-                                    <div v-for="s in sortedSites" :key="s.id" class="glass-panel p-4 rounded-2xl flex justify-between items-center shadow-md border-slate-800/80">
-                                        <span class="font-bold text-xs text-slate-200">{{s.name}}</span>
-                                        <button @click="removeSite(s.id)" class="text-brand-rose/40 hover:text-brand-rose text-[9px] font-black uppercase bg-brand-rose/10 px-2.5 py-1.5 rounded-xl transition-all">Delete</button>
+                                    <div v-for="s in activeSites" :key="s.id" class="glass-panel p-4 rounded-2xl flex justify-between items-center shadow-md border-slate-800/80">
+                                        <span class="font-bold text-xs text-slate-200 uppercase">{{s.name}}</span>
+                                        <button @click="archiveSite(s.id)" 
+                                            :class="deletingSiteId === s.id ? 'bg-brand-rose text-white' : 'text-brand-rose/40 bg-brand-rose/10 hover:text-brand-rose'"
+                                            class="text-[9px] font-black uppercase px-2.5 py-1.5 rounded-xl transition-all">
+                                            {{ deletingSiteId === s.id ? 'Confirm?' : 'Archive' }}
+                                        </button>
                                     </div>
                                 </div>
 
@@ -464,7 +622,14 @@
 
                             <div v-if="statTimeframe !== 'All'" class="flex justify-between items-center bg-slate-900/40 border border-slate-800/40 p-2 rounded-2xl shadow-sm">
                                 <button @click="timeOffset--" class="px-4 py-2 bg-slate-800/80 hover:bg-slate-700 text-slate-300 font-bold active:scale-95 transition-transform text-[9px] uppercase tracking-wider rounded-xl">← Prev</button>
-                                <span class="text-[9px] font-black text-brand-indigo uppercase tracking-widest text-center flex-1">{{ currentTimeLabel }}</span>
+                                
+                                <div class="flex-1 relative flex justify-center items-center h-full group">
+                                    <input v-if="statTimeframe === 'Month'" type="month" v-model="selectedMonth" class="absolute inset-0 w-full h-full opacity-0 z-20 cursor-pointer">
+                                    <span class="text-[9px] font-black text-brand-indigo uppercase tracking-widest text-center group-hover:text-brand-violet transition-colors">
+                                        {{ currentTimeLabel }} <span v-if="statTimeframe === 'Month'" class="text-[8px] ml-1">▼</span>
+                                    </span>
+                                </div>
+
                                 <button @click="timeOffset++" class="px-4 py-2 bg-slate-800/80 hover:bg-slate-700 text-slate-300 font-bold active:scale-95 transition-transform text-[9px] uppercase tracking-wider rounded-xl" :class="{'opacity-30': timeOffset === 0}" :disabled="timeOffset === 0">Next →</button>
                             </div>
 
@@ -486,6 +651,53 @@
                                 </p>
                             </div>
 
+                            <!-- Worker Weekly Work Map Visual Indicator -->
+                            <div class="glass-panel p-6 rounded-[2.5rem] shadow-xl relative overflow-hidden">
+                                <h3 class="text-[9px] font-black text-slate-400 uppercase mb-4 tracking-widest">
+                                    {{ statTimeframe === 'Week' ? 'My Weekly Work Map' : 'My Weekday Trends' }}
+                                </h3>
+                                
+                                <!-- Weekly visual bubbles for 'Week' view -->
+                                <div v-if="statTimeframe === 'Week'" class="grid grid-cols-7 gap-2 text-center">
+                                    <div v-for="day in weeklyTrack" :key="day.dateStr" class="flex flex-col items-center">
+                                        <span class="text-[9px] font-extrabold text-slate-400 uppercase mb-1.5">{{ day.dayName }}</span>
+                                        <div :class="day.worked ? 'bg-gradient-to-br from-brand-indigo to-brand-violet text-white shadow-[0_0_15px_rgba(99,102,241,0.5)] border-transparent' : 'border border-slate-800 text-slate-600'" 
+                                             class="w-10 h-10 rounded-full flex flex-col justify-center items-center text-center transition-all">
+                                            <span class="text-[10px] font-black leading-none">{{ day.dayNum }}</span>
+                                            <span v-if="day.worked" class="text-[7px] font-extrabold mt-0.5">{{ day.hours }}h</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Weekday bar charts for 'Month' & 'All' views -->
+                                <div v-else class="space-y-2.5">
+                                    <div v-for="day in weekdayDistribution" :key="day.day" class="flex items-center gap-3">
+                                        <span class="text-[10px] font-black text-slate-400 w-8 uppercase">{{ day.day }}</span>
+                                        <div class="flex-1 bg-slate-900 rounded-full h-2.5 overflow-hidden border border-slate-800/40">
+                                            <div class="bg-gradient-to-r from-brand-indigo to-brand-violet h-2.5 rounded-full" :style="{ width: day.percentage + '%' }"></div>
+                                        </div>
+                                        <span class="text-[10px] font-black text-slate-300 w-8 text-right">{{ day.hours }}h</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Worker Daily Days Worked Breakdown -->
+                            <div class="glass-panel p-6 rounded-[2.5rem] shadow-xl">
+                                <div class="flex justify-between items-center mb-4">
+                                    <h3 class="text-[9px] font-black text-slate-400 uppercase tracking-widest">Daily Breakdown</h3>
+                                    <span class="text-[8px] font-black text-brand-indigo bg-brand-indigo/10 px-2 py-0.5 rounded uppercase">{{ myDailyBreakdown.length }} Days Worked</span>
+                                </div>
+                                <div class="space-y-2 max-h-56 overflow-y-auto custom-scrollbar pr-2">
+                                    <div v-for="day in myDailyBreakdown" :key="day.date" class="flex justify-between items-center p-3 bg-slate-900/40 rounded-2xl border border-slate-800/40">
+                                        <span class="font-bold text-xs text-slate-200">{{ day.displayDate }}</span>
+                                        <span class="text-brand-indigo font-black text-xs">{{ day.hours }}h</span>
+                                    </div>
+                                </div>
+                                <div v-if="myDailyBreakdown.length === 0" class="text-center py-4 text-slate-500 text-xs font-semibold">
+                                    No work logged in this period.
+                                </div>
+                            </div>
+
                             <!-- Site Breakdown -->
                             <div v-if="mySiteHours.length > 0" class="glass-panel p-6 rounded-[2.5rem] shadow-xl">
                                 <h3 class="text-[9px] font-black text-slate-400 uppercase mb-4 tracking-widest">Site Breakdown</h3>
@@ -498,9 +710,6 @@
                                         <div class="bg-gradient-to-r from-brand-indigo to-brand-violet h-1.5 rounded-full" :style="{ width: getWorkerSiteHoursPercentage(siteObj.hours) + '%' }"></div>
                                     </div>
                                 </div>
-                            </div>
-                            <div v-else class="text-center py-12 text-slate-500">
-                                No hours logged for this period.
                             </div>
                         </div>
 
@@ -516,7 +725,7 @@
                                     </div>
                                     <h4 class="font-bold text-slate-200 text-xs mt-1.5">{{ getSiteName(log.sid) }}</h4>
                                 </div>
-                                <span class="text-lg font-black text-brand-indigo">{{ log.h }}<span class="text-xs text-slate-500 font-bold ml-0.5">h</span></span>
+                                <span class="text-lg font-black text-brand-indigo">{{ parseFloat(log.h) || 0 }}<span class="text-xs text-slate-500 font-bold ml-0.5">h</span></span>
                             </div>
                             
                             <div v-if="mySortedLogs.length === 0" class="text-center py-12 text-slate-500">
@@ -561,8 +770,8 @@
 
     <!-- Firebase Libraries -->
     <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { initializeApp, getApps, getApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut, initializeAuth, indexedDBLocalPersistence, browserLocalPersistence } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         
         // Correct imports for Firestore
         import { 
@@ -576,7 +785,8 @@
             onSnapshot as fsOnSnapshot 
         } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        const { createApp, ref, reactive, computed, onMounted, watch } = Vue;
+        // iOS module compatibility: safe fallback if dynamic window context fails
+        const { createApp, ref, reactive, computed, onMounted, watch } = window.Vue || Vue;
 
         const firebaseConfig = {
             apiKey: "AIzaSyA9ErQCRNaHA6eXr4qmm0tfDrf3WfoJnhY",
@@ -587,8 +797,20 @@
             appId: "1:2932232690:web:acb6842bfcb49d427adb6b"
         };
 
-        const fbApp = initializeApp(firebaseConfig);
-        const auth = getAuth(fbApp);
+        // iOS Standalone Fix: check if the app is already in memory before initializing a new one
+        const fbApp = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
+        
+        // Private Mode Safeguard: fallback to Local/Memory persistence if IndexedDB is blocked
+        let auth;
+        try {
+            auth = initializeAuth(fbApp, {
+                persistence: [indexedDBLocalPersistence, browserLocalPersistence]
+            });
+        } catch (e) {
+            console.warn("Auth initialization fallback triggered:", e);
+            auth = getAuth(fbApp);
+        }
+
         const db = initFirestore(fbApp);
         const appId = 'sp-creativ-final';
 
@@ -613,16 +835,74 @@
                     selected: [] 
                 });
 
-                const news = ref({ site: '', emp: '', empEmail: '' });
+                // Feature additions
+                const news = ref({ site: '', emp: '', empRate: '', empEmail: '' });
                 const empEmails = reactive({});
+                const empRates = reactive({});
                 const priceForm = reactive({});
                 const payrollStatus = ref([]);
+                const historyFilters = reactive({ eid: '', sid: '' });
+
+                // Inline Confirmation States
+                const deletingLogId = ref(null);
+                const deletingSiteId = ref(null);
+                const deletingEmpId = ref(null);
 
                 // Time Filter Logic
                 const statTimeframe = ref('Month');
                 const timeOffset = ref(0);
                 const d = new Date();
                 const selectedMonth = ref(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`);
+
+                // Safe Timezone Date Formatter (Prevents iOS timezone shift)
+                const formatDisplayDateSafe = (dateStr) => {
+                    if (!dateStr) return '';
+                    const parts = dateStr.split('-');
+                    if (parts.length !== 3) return dateStr;
+                    const logD = new Date(parts[0], parts[1] - 1, parts[2], 12, 0, 0);
+                    return logD.toLocaleDateString('en-US', {weekday: 'short', month: 'short', day: 'numeric'});
+                };
+
+                // Helper to calculate exact European calendar dates (Mon-Sun) for Week view
+                const getWeekDates = () => {
+                    const now = new Date();
+                    const dayOfWeek = now.getDay();
+                    const daysToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+                    const targetMonday = new Date(now);
+                    targetMonday.setDate(now.getDate() + daysToMonday + (timeOffset.value * 7));
+                    
+                    const list = [];
+                    for (let i = 0; i < 7; i++) {
+                        const day = new Date(targetMonday);
+                        day.setDate(targetMonday.getDate() + i);
+                        const dateStr = `${day.getFullYear()}-${String(day.getMonth() + 1).padStart(2, '0')}-${String(day.getDate()).padStart(2, '0')}`;
+                        list.push({
+                            dateStr,
+                            dayName: day.toLocaleDateString('en-US', { weekday: 'short' }),
+                            dayNum: day.getDate()
+                        });
+                    }
+                    return list;
+                };
+
+                // Sync Month Picker to Offset
+                watch(selectedMonth, (newMonth) => {
+                    if (!newMonth || statTimeframe.value !== 'Month') return;
+                    const [year, month] = newMonth.split('-').map(Number);
+                    const now = new Date();
+                    const monthsDiff = (year - now.getFullYear()) * 12 + (month - 1 - now.getMonth());
+                    if (timeOffset.value !== monthsDiff) timeOffset.value = monthsDiff;
+                });
+
+                // Sync Offset to Month Picker
+                watch(timeOffset, (newVal) => {
+                    if (statTimeframe.value === 'Month') {
+                        const now = new Date();
+                        const d = new Date(now.getFullYear(), now.getMonth() + newVal, 1);
+                        const str = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+                        if (selectedMonth.value !== str) selectedMonth.value = str;
+                    }
+                });
 
                 const formatMonth = (val) => {
                     if(!val) return 'MONTH';
@@ -646,9 +926,12 @@
                         sites.value = snap.docs.map(d => ({ id: d.id, ...d.data() }));
                         sites.value.forEach(s => { 
                             if(!priceForm[s.id]) {
-                                priceForm[s.id] = { desc: '', qty: 0, unit: 'm2', price: 0 }; 
+                                priceForm[s.id] = { desc: '', qty: 1, unit: 'm2', price: 0, paidPercent: 0 }; 
                             }
                         });
+                        loading.value = false;
+                    }, (err) => {
+                        console.warn("Firestore site snapshot failed:", err);
                         loading.value = false;
                     });
 
@@ -656,16 +939,17 @@
                         employees.value = snap.docs.map(d => ({ id: d.id, ...d.data() }));
                         employees.value.forEach(e => {
                             if (e.email) empEmails[e.id] = e.email;
+                            if (empRates[e.id] === undefined) empRates[e.id] = parseFloat(e.rate) || 0;
                         });
-                    });
+                    }, (err) => console.warn("Firestore employees snapshot failed:", err));
 
                     fsOnSnapshot(fsCollection(db, 'artifacts', appId, 'public', 'data', 'logs'), (snap) => {
                         logs.value = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-                    });
+                    }, (err) => console.warn("Firestore logs snapshot failed:", err));
 
                     fsOnSnapshot(fsCollection(db, 'artifacts', appId, 'public', 'data', 'payroll_status'), (snap) => {
                         payrollStatus.value = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-                    });
+                    }, (err) => console.warn("Firestore payroll snapshot failed:", err));
                 };
 
                 const handleLogin = async () => {
@@ -689,6 +973,10 @@
                 });
 
                 const isAdmin = computed(() => !currentUserEmployee.value);
+                
+                // Hide archived elements from active dropdowns
+                const activeSites = computed(() => sortedSites.value.filter(s => !s.isArchived));
+                const activeEmployees = computed(() => employees.value.filter(e => !e.isArchived));
 
                 watch(isAdmin, (adminStatus) => {
                     if (adminStatus) {
@@ -703,7 +991,6 @@
                     if (i > -1) form.value.selected.splice(i, 1); else form.value.selected.push(id);
                 };
 
-                // Get daily logged hours
                 const getTodayHours = (eid) => {
                     return logs.value
                         .filter(l => l.eid === eid && l.date === form.value.date)
@@ -721,7 +1008,7 @@
                                 eid, 
                                 sid: form.value.siteId, 
                                 date: form.value.date, 
-                                h: parseFloat(form.value.hours)
+                                h: parseFloat(form.value.hours) || 0 
                             });
                         }
                         form.value.selected = [];
@@ -734,14 +1021,46 @@
 
                 const deleteLog = async (id) => { 
                     if (!user.value || !isAdmin.value) return;
-                    if(confirm('Permanently delete this labor entry?')) {
-                        await fsDeleteDoc(fsDoc(db, 'artifacts', appId, 'public', 'data', 'logs', id));
+                    if (deletingLogId.value !== id) {
+                        deletingLogId.value = id;
+                        setTimeout(() => { if (deletingLogId.value === id) deletingLogId.value = null; }, 3000);
+                        return;
                     }
+                    await fsDeleteDoc(fsDoc(db, 'artifacts', appId, 'public', 'data', 'logs', id));
+                    deletingLogId.value = null;
                 };
 
-                const calculateSiteTotal = (sid) => (sites.value.find(x => x.id === sid)?.pricingItems || []).reduce((a, b) => a + (b.qty * b.price), 0);
+                // Milestone Helper - total contract value of the site
+                const calculateSiteTotal = (sid) => {
+                    return (sites.value.find(x => x.id === sid)?.pricingItems || []).reduce((a, b) => {
+                        return a + ((parseFloat(b.qty)||0) * (parseFloat(b.price)||0));
+                    }, 0);
+                };
 
-                const getAllTimeSiteHours = (sid) => logs.value.filter(l => l.sid === sid).reduce((a, b) => a + b.h, 0);
+                // Milestone Helper - actual portion paid so far
+                const calculateSitePaid = (sid) => {
+                    const s = sites.value.find(x => x.id === sid);
+                    if (!s) return 0;
+                    if (s.isPaid) return calculateSiteTotal(sid);
+                    return (s.pricingItems || []).reduce((a, b) => {
+                        const pct = parseFloat(b.paidPercent) || 0;
+                        const value = (parseFloat(b.qty)||0) * (parseFloat(b.price)||0);
+                        return a + (value * (pct / 100));
+                    }, 0);
+                };
+
+                // Milestone Helper - remaining owed amount
+                const calculateSiteOwed = (sid) => {
+                    const s = sites.value.find(x => x.id === sid);
+                    if (!s || s.isPaid) return 0;
+                    return (s.pricingItems || []).reduce((a, b) => {
+                        const pct = parseFloat(b.paidPercent) || 0;
+                        const value = (parseFloat(b.qty)||0) * (parseFloat(b.price)||0);
+                        return a + (value * (1 - (pct / 100)));
+                    }, 0);
+                };
+
+                const getAllTimeSiteHours = (sid) => logs.value.filter(l => l.sid === sid).reduce((a, b) => a + (parseFloat(b.h)||0), 0);
 
                 const calculateSiteYield = (sid) => {
                     const rev = calculateSiteTotal(sid);
@@ -750,17 +1069,32 @@
                 };
 
                 const addItemToSite = async (sid) => {
-                    if (!user.value || !isAdmin.value) return;
+                    if (!user.value || !isAdmin.value || !priceForm[sid]) return;
                     const s = sites.value.find(x => x.id === sid);
-                    const items = [...(s.pricingItems || []), { id: Date.now(), ...priceForm[sid] }];
+                    // Newly created work defaults to 0% paid milestone
+                    const items = [...(s.pricingItems || []), { id: Date.now(), ...priceForm[sid], paidPercent: 0 }];
                     await fsUpdateDoc(fsDoc(db, 'artifacts', appId, 'public', 'data', 'sites', sid), { pricingItems: items });
-                    priceForm[sid].desc = ''; priceForm[sid].qty = 0;
+                    priceForm[sid].desc = ''; priceForm[sid].qty = 1; priceForm[sid].price = 0;
                 };
 
                 const removeItemFromSite = async (sid, iid) => {
                     if (!user.value || !isAdmin.value) return;
                     const s = sites.value.find(x => x.id === sid);
                     const items = s.pricingItems.filter(i => i.id !== iid);
+                    await fsUpdateDoc(fsDoc(db, 'artifacts', appId, 'public', 'data', 'sites', sid), { pricingItems: items });
+                };
+
+                // Milestone collection updater
+                const updateItemPaymentPercent = async (sid, iid, percent) => {
+                    if (!user.value || !isAdmin.value) return;
+                    const s = sites.value.find(x => x.id === sid);
+                    if (!s) return;
+                    const items = (s.pricingItems || []).map(i => {
+                        if (i.id === iid) {
+                            return { ...i, paidPercent: percent };
+                        }
+                        return i;
+                    });
                     await fsUpdateDoc(fsDoc(db, 'artifacts', appId, 'public', 'data', 'sites', sid), { pricingItems: items });
                 };
 
@@ -773,8 +1107,9 @@
                 const addSite = async () => { 
                     if (!user.value || !isAdmin.value || !news.value.site) return; 
                     await fsAddDoc(fsCollection(db, 'artifacts', appId, 'public', 'data', 'sites'), { 
-                        name: news.value.site, 
+                        name: news.value.site.trim().toUpperCase(),
                         isPaid: false, 
+                        isArchived: false,
                         pricingItems: [],
                         createdAt: Date.now()
                     }); 
@@ -784,11 +1119,14 @@
                 const addEmp = async () => { 
                     if (!user.value || !isAdmin.value || !news.value.emp) return; 
                     await fsAddDoc(fsCollection(db, 'artifacts', appId, 'public', 'data', 'employees'), { 
-                        name: news.value.emp,
-                        email: news.value.empEmail ? news.value.empEmail.trim() : ''
+                        name: news.value.emp.trim(),
+                        email: news.value.empEmail ? news.value.empEmail.trim() : '',
+                        rate: parseFloat(news.value.empRate) || 0,
+                        isArchived: false
                     }); 
                     news.value.emp = ''; 
                     news.value.empEmail = '';
+                    news.value.empRate = '';
                 };
 
                 const linkEmpEmail = async (id) => {
@@ -805,42 +1143,71 @@
                     });
                 };
 
-                const removeSite = async (id) => { if(confirm('Delete site and all related data?')) await fsDeleteDoc(fsDoc(db, 'artifacts', appId, 'public', 'data', 'sites', id)); };
-                const removeEmp = async (id) => { if(confirm('Remove worker from roster?')) await fsDeleteDoc(fsDoc(db, 'artifacts', appId, 'public', 'data', 'employees', id)); };
+                const updateEmpRate = async (id) => {
+                    if (!user.value || !isAdmin.value) return;
+                    const r = parseFloat(empRates[id]) || 0;
+                    await fsUpdateDoc(fsDoc(db, 'artifacts', appId, 'public', 'data', 'employees', id), { rate: r });
+                };
+
+                const archiveSite = async (id) => { 
+                    if (!user.value || !isAdmin.value) return;
+                    if (deletingSiteId.value !== id) {
+                        deletingSiteId.value = id;
+                        setTimeout(() => { if (deletingSiteId.value === id) deletingSiteId.value = null; }, 3000);
+                        return;
+                    }
+                    await fsUpdateDoc(fsDoc(db, 'artifacts', appId, 'public', 'data', 'sites', id), { isArchived: true }); 
+                    deletingSiteId.value = null;
+                };
+
+                const archiveEmp = async (id) => { 
+                    if (!user.value || !isAdmin.value) return;
+                    if (deletingEmpId.value !== id) {
+                        deletingEmpId.value = id;
+                        setTimeout(() => { if (deletingEmpId.value === id) deletingEmpId.value = null; }, 3000);
+                        return;
+                    }
+                    await fsUpdateDoc(fsDoc(db, 'artifacts', appId, 'public', 'data', 'employees', id), { isArchived: true }); 
+                    deletingEmpId.value = null;
+                };
 
                 const isDateInTimeframe = (dateStr) => {
                     if (statTimeframe.value === 'All') return true;
+                    if (!dateStr) return false;
                     
-                    const logD = new Date(dateStr); 
+                    const parts = dateStr.split('T')[0].split('-');
+                    if (parts.length !== 3) return false;
+                    
+                    const [y, m, d] = parts.map(Number);
+                    const logD = new Date(y, m - 1, d, 12, 0, 0); 
+                    
                     const now = new Date();
+                    now.setHours(12, 0, 0, 0);
                     
                     if (statTimeframe.value === 'Month') {
-                        const targetMonth = new Date(now.getFullYear(), now.getMonth() + timeOffset.value, 1);
+                        const targetMonth = new Date(now.getFullYear(), now.getMonth() + timeOffset.value, 1, 12, 0, 0);
                         return logD.getFullYear() === targetMonth.getFullYear() && logD.getMonth() === targetMonth.getMonth();
                     }
                     
                     if (statTimeframe.value === 'Week') {
-                        const day = now.getDay();
-                        const diff = now.getDate() - day + (day === 0 ? -6 : 1);
-                        const currentMonday = new Date(now.setDate(diff));
-                        currentMonday.setHours(0,0,0,0);
+                        const dayOfWeek = now.getDay();
+                        const daysToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
                         
-                        const targetMonday = new Date(currentMonday);
-                        targetMonday.setDate(targetMonday.getDate() + (timeOffset.value * 7));
+                        const targetMonday = new Date(now);
+                        targetMonday.setDate(now.getDate() + daysToMonday + (timeOffset.value * 7));
+                        targetMonday.setHours(0, 0, 0, 0);
                         
                         const targetSunday = new Date(targetMonday);
-                        targetSunday.setDate(targetSunday.getDate() + 6);
-                        targetSunday.setHours(23,59,59,999);
+                        targetSunday.setDate(targetMonday.getDate() + 6);
+                        targetSunday.setHours(23, 59, 59, 999);
                         
-                        return logD >= targetMonday && logD <= targetSunday;
+                        return logD.getTime() >= targetMonday.getTime() && logD.getTime() <= targetSunday.getTime();
                     }
                     return true;
                 };
 
-                // site hours
-                const getSiteHours = (sid) => logs.value.filter(l => l.sid === sid && isDateInTimeframe(l.date)).reduce((a, b) => a + b.h, 0);
+                const getSiteHours = (sid) => logs.value.filter(l => l.sid === sid && isDateInTimeframe(l.date)).reduce((a, b) => a + (parseFloat(b.h)||0), 0);
 
-                // Max site hours in period for UI percentage calculations
                 const getMaxSiteHours = () => {
                     const hours = sites.value.map(s => getSiteHours(s.id));
                     const max = Math.max(...hours);
@@ -857,8 +1224,8 @@
 
                 const currentTimeLabel = computed(() => {
                     if (statTimeframe.value === 'Month') {
-                        const d = new Date();
-                        d.setMonth(d.getMonth() + timeOffset.value);
+                        const now = new Date();
+                        const d = new Date(now.getFullYear(), now.getMonth() + timeOffset.value, 1);
                         return d.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
                     }
                     if (statTimeframe.value === 'Week') {
@@ -866,13 +1233,14 @@
                         if (timeOffset.value === -1) return 'Last Week';
                         
                         const now = new Date();
-                        const day = now.getDay();
-                        const diff = now.getDate() - day + (day === 0 ? -6 : 1);
-                        const targetMonday = new Date(now.setDate(diff));
-                        targetMonday.setDate(targetMonday.getDate() + (timeOffset.value * 7));
+                        const dayOfWeek = now.getDay();
+                        const daysToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+                        
+                        const targetMonday = new Date(now);
+                        targetMonday.setDate(now.getDate() + daysToMonday + (timeOffset.value * 7));
                         
                         const targetSunday = new Date(targetMonday);
-                        targetSunday.setDate(targetSunday.getDate() + 6);
+                        targetSunday.setDate(targetMonday.getDate() + 6);
                         
                         const format = (date) => date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
                         return `${format(targetMonday)} - ${format(targetSunday)}`;
@@ -887,7 +1255,7 @@
                     const myLogs = logs.value.filter(l => l.eid === myEid && isDateInTimeframe(l.date));
                     
                     const siteMap = {};
-                    myLogs.forEach(l => { siteMap[l.sid] = (siteMap[l.sid] || 0) + l.h; });
+                    myLogs.forEach(l => { siteMap[l.sid] = (siteMap[l.sid] || 0) + (parseFloat(l.h)||0); });
                     
                     return Object.keys(siteMap).map(sid => ({
                         siteName: sites.value.find(s => s.id === sid)?.name || 'Unknown Site',
@@ -939,6 +1307,7 @@
                     }
                     return list;
                 });
+
                 const sortedSites = computed(() => {
                     return [...sites.value].sort((a, b) => {
                         const logsA = logs.value.filter(l => l.sid === a.id);
@@ -958,34 +1327,145 @@
                         return tB - tA;
                     });
                 });
+
                 return { 
                     user, authForm, authLoading, authError, handleLogin, handleLogout, view, sites, employees, logs, form, news, priceForm, loading, 
-                    statTimeframe, timeOffset, currentTimeLabel, isAdmin, empEmails, selectedMonth, formatMonth,
-                    toggleEmp, saveLabor, deleteLog, addItemToSite, removeItemFromSite, togglePaid, addSite, addEmp, removeSite, removeEmp, linkEmpEmail, unlinkEmpEmail,
-                    calculateSiteTotal, getSiteHours, getSiteHoursPercentage, getTodayHours,
+                    statTimeframe, timeOffset, currentTimeLabel, isAdmin, empEmails, empRates, selectedMonth, formatMonth,
+                    activeSites, activeEmployees, historyFilters, deletingLogId, deletingSiteId, deletingEmpId,
+                    toggleEmp, saveLabor, deleteLog, addItemToSite, removeItemFromSite, togglePaid, addSite, addEmp, linkEmpEmail, unlinkEmpEmail, archiveSite, archiveEmp, updateEmpRate, updateItemPaymentPercent,
+                    calculateSiteTotal, calculateSitePaid, calculateSiteOwed, getSiteHours, getSiteHoursPercentage, getTodayHours,
                     getAllTimeSiteHours, calculateSiteYield,
                     mySiteHours, myTotalHours, mySortedLogs, getWorkerSiteHoursPercentage,
                     getEmpName, getSiteName,
                     payrollStatus, getSelectedMonthStr, isSelectedMonthPaid, togglePayrollPaid, getLast6Months, sortedSites,
+                    
                     statsEmpHours: computed(() => {
                         const res = {};
                         logs.value.filter(l => isDateInTimeframe(l.date)).forEach(l => {
-                            const n = employees.value.find(e => e.id === l.eid)?.name || 'Worker';
-                            res[n] = (res[n] || 0) + l.h;
+                            const emp = employees.value.find(e => e.id === l.eid);
+                            const n = emp?.name || 'Worker';
+                            if(!res[n]) res[n] = { hours: 0, rate: emp?.rate || 0 };
+                            res[n].hours += (parseFloat(l.h) || 0);
                         });
                         return res;
                     }),
-                    statsRevenue: computed(() => {
-                        const res = { paid: 0, unpaid: 0 };
-                        sites.value.forEach(s => {
-                            const hasLogs = logs.value.some(l => l.sid === s.id && isDateInTimeframe(l.date));
-                            if(hasLogs || statTimeframe.value === 'All') {
-                                if(s.isPaid) res.paid += calculateSiteTotal(s.id); else res.unpaid += calculateSiteTotal(s.id);
+
+                    dailyBreakdown: computed(() => {
+                        const days = {};
+                        logs.value.filter(l => isDateInTimeframe(l.date)).forEach(l => {
+                            if (!days[l.date]) days[l.date] = 0;
+                            days[l.date] += (parseFloat(l.h) || 0);
+                        });
+                        return Object.keys(days)
+                            .sort((a,b) => new Date(b) - new Date(a)) 
+                            .map(date => ({
+                                date,
+                                displayDate: formatDisplayDateSafe(date),
+                                hours: days[date]
+                            }));
+                    }),
+
+                    myDailyBreakdown: computed(() => {
+                        if (isAdmin.value || !currentUserEmployee.value) return [];
+                        const myEid = currentUserEmployee.value.id;
+                        const days = {};
+                        logs.value.filter(l => l.eid === myEid && isDateInTimeframe(l.date)).forEach(l => {
+                            if (!days[l.date]) days[l.date] = 0;
+                            days[l.date] += (parseFloat(l.h) || 0);
+                        });
+                        return Object.keys(days)
+                            .sort((a,b) => new Date(b) - new Date(a))
+                            .map(date => ({
+                                date,
+                                displayDate: formatDisplayDateSafe(date),
+                                hours: days[date]
+                            }));
+                    }),
+
+                    // Maps 7 actual dates of selected week and calculates worked status + hours
+                    weeklyTrack: computed(() => {
+                        const days = getWeekDates();
+                        const relevantLogs = logs.value.filter(l => {
+                            if (!isAdmin.value && currentUserEmployee.value) {
+                                return l.eid === currentUserEmployee.value.id;
+                            }
+                            return true;
+                        });
+
+                        return days.map(d => {
+                            const dayLogs = relevantLogs.filter(l => l.date === d.dateStr);
+                            const hrs = dayLogs.reduce((sum, l) => sum + (parseFloat(l.h) || 0), 0);
+                            return {
+                                ...d,
+                                hours: hrs,
+                                worked: hrs > 0
+                            };
+                        });
+                    }),
+
+                    // Aggregates total hours worked by weekday (Monday-Sunday) for larger trends
+                    weekdayDistribution: computed(() => {
+                        const relevantLogs = logs.value.filter(l => {
+                            if (!isDateInTimeframe(l.date)) return false;
+                            if (!isAdmin.value && currentUserEmployee.value) {
+                                return l.eid === currentUserEmployee.value.id;
+                            }
+                            return true;
+                        });
+
+                        const counts = { Mon: 0, Tue: 0, Wed: 0, Thu: 0, Fri: 0, Sat: 0, Sun: 0 };
+                        relevantLogs.forEach(l => {
+                            const parts = l.date.split('-');
+                            if (parts.length === 3) {
+                                const date = new Date(parts[0], parts[1]-1, parts[2], 12, 0, 0);
+                                const dayName = date.toLocaleDateString('en-US', { weekday: 'short' });
+                                if (counts[dayName] !== undefined) {
+                                    counts[dayName] += (parseFloat(l.h) || 0);
+                                }
                             }
                         });
-                        return res;
+
+                        const maxHours = Math.max(...Object.values(counts), 1);
+
+                        return Object.keys(counts).map(day => ({
+                            day,
+                            hours: counts[day],
+                            percentage: Math.round((counts[day] / maxHours) * 100)
+                        }));
                     }),
-                    sortedLogs: computed(() => [...logs.value].sort((a,b) => new Date(b.date) - new Date(a.date)))
+                    
+                    statsRevenue: computed(() => {
+                        let paid = 0, unpaid = 0, laborCost = 0;
+                        
+                        sites.value.forEach(s => {
+                            const sitePaid = calculateSitePaid(s.id);
+                            const siteOwed = calculateSiteOwed(s.id);
+                            const hasLogs = logs.value.some(l => l.sid === s.id && isDateInTimeframe(l.date));
+                            if(hasLogs || statTimeframe.value === 'All') {
+                                paid += sitePaid;
+                                unpaid += siteOwed;
+                            }
+                        });
+
+                        logs.value.filter(l => isDateInTimeframe(l.date)).forEach(l => {
+                            const emp = employees.value.find(e => e.id === l.eid);
+                            laborCost += ((parseFloat(l.h) || 0) * (parseFloat(emp?.rate) || 0));
+                        });
+
+                        return { paid, unpaid, laborCost, profit: (paid + unpaid) - laborCost };
+                    }),
+
+                    sortedLogs: computed(() => [...logs.value].sort((a,b) => new Date(b.date) - new Date(a.date))),
+
+                    filteredLogs: computed(() => {
+                        return logs.value
+                            .filter(l => {
+                                const matchEmp = !historyFilters.eid || l.eid === historyFilters.eid;
+                                const matchSite = !historyFilters.sid || l.sid === historyFilters.sid;
+                                return matchEmp && matchSite;
+                            })
+                            .sort((a,b) => new Date(b.date) - new Date(a.date));
+                    })
                 };
             }
         }).mount('#app');
