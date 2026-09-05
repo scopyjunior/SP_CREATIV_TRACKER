@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ro">
 <head>
     <meta charset="UTF-8">
     <!-- Fixed iOS Viewport: added viewport-fit=cover to avoid Safe Area layout calculation loops -->
@@ -11,7 +11,7 @@
     <link rel="manifest" href="manifest.json">
     <link rel="icon" type="image/png" href="icon-192.png">
     <meta name="theme-color" content="#030712">
-    <title>SP CREATIV | Secure Cloud & Payroll</title>
+    <title>SP CREATIV | Portal Cloud & Pontaj Șantiere</title>
     
     <script>
         // Non-blocking Service Worker registration: wrapped in a try/catch so it can never crash iOS WebKit
@@ -19,10 +19,10 @@
             window.addEventListener('load', () => {
                 try {
                     navigator.serviceWorker.register('./sw.js')
-                        .then(reg => console.log('Service Worker registered successfully:', reg.scope))
-                        .catch(err => console.warn('Service Worker registration skipped/failed:', err));
+                        .then(reg => console.log('Service Worker înregistrat cu succes:', reg.scope))
+                        .catch(err => console.warn('Înregistrare Service Worker eșuată:', err));
                 } catch (e) {
-                    console.warn('SW registration failed silently:', e);
+                    console.warn('Eroare silențioasă la înregistrarea SW:', e);
                 }
             });
         }
@@ -88,7 +88,7 @@
             width: 5px; 
             height: 5px;
         }
-        .custom-scrollbar::-webkit-scrollbar-track {
+        .custom-scrollbar::-webkit-scrollbar-track { 
             background: rgba(15, 23, 42, 0.3);
         }
         .custom-scrollbar::-webkit-scrollbar-thumb { 
@@ -126,7 +126,7 @@
 </head>
 <body class="text-slate-100 font-sans select-none antialiased min-h-screen relative overflow-x-hidden">
     
-    <!-- ambient background blobs -->
+    <!-- Fundal ambiental -->
     <div class="fixed inset-0 bg-slate-950 -z-50 overflow-hidden">
         <div class="absolute top-[-10%] left-[-15%] w-[60%] h-[60%] rounded-full bg-brand-indigo/10 blur-[130px] pointer-events-none"></div>
         <div class="absolute bottom-[-10%] right-[-15%] w-[60%] h-[60%] rounded-full bg-brand-violet/10 blur-[130px] pointer-events-none"></div>
@@ -134,61 +134,61 @@
 
     <div id="app" v-cloak class="flex flex-col min-h-screen">
 
-        <!-- FLOATING TOAST NOTIFICATION -->
+        <!-- NOTIFICARE TOAST PLUTITOARE -->
         <div v-if="toastMessage" class="fixed top-4 left-1/2 -translate-x-1/2 z-50 bg-gradient-to-r from-brand-indigo to-brand-violet text-white px-5 py-3 rounded-2xl shadow-2xl text-xs font-black uppercase tracking-wider border border-white/20 animate-toast flex items-center gap-2">
             <span>{{ toastMessage }}</span>
         </div>
         
-        <!-- LOGIN SCREEN -->
+        <!-- ECRAN DE CONECTARE -->
         <div v-if="!user" class="fixed inset-0 bg-slate-950 z-[100] flex items-center justify-center p-6">
             <div class="glass-panel w-full max-w-sm rounded-[2.5rem] p-8 shadow-2xl relative overflow-hidden">
                 <div class="absolute -top-12 -right-12 w-28 h-28 bg-brand-indigo/20 rounded-full blur-2xl"></div>
                 <div class="text-center mb-8">
                     <div class="inline-flex items-center justify-center w-16 h-16 rounded-2xl mb-4 shadow-lg overflow-hidden border border-slate-700/50">
-                        <img src="./icon-192.png" alt="SP CREATIV Logo" class="w-full h-full object-cover">
+                        <img src="./icon-192.png" alt="Siglă SP CREATIV" class="w-full h-full object-cover">
                     </div>
                     <h1 class="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-brand-indigo via-violet-400 to-brand-violet italic uppercase tracking-wider">SP CREATIV</h1>
-                    <p class="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-1">Secure Cloud Portal</p>
+                    <p class="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-1">Portal Cloud Securizat</p>
                 </div>
                 <div class="space-y-4">
                     <div class="relative">
-                        <input v-model="authForm.email" type="email" placeholder="Email" class="w-full glass-input p-4 pl-5 rounded-2xl font-semibold outline-none text-sm text-slate-100 transition-all">
+                        <input v-model="authForm.email" type="email" placeholder="Adresă Email" class="w-full glass-input p-4 pl-5 rounded-2xl font-semibold outline-none text-sm text-slate-100 transition-all">
                     </div>
                     <div class="relative">
-                        <input v-model="authForm.pass" type="password" placeholder="Password" class="w-full glass-input p-4 pl-5 rounded-2xl font-semibold outline-none text-sm text-slate-100 transition-all">
+                        <input v-model="authForm.pass" type="password" placeholder="Parolă" class="w-full glass-input p-4 pl-5 rounded-2xl font-semibold outline-none text-sm text-slate-100 transition-all">
                     </div>
                     <button @click="handleLogin" class="w-full bg-gradient-to-r from-brand-indigo to-brand-violet hover:from-brand-indigo/90 hover:to-brand-violet/90 text-white font-black py-4 rounded-2xl shadow-lg shadow-brand-indigo/20 active:scale-95 transition-all text-sm tracking-widest uppercase">
-                        {{ authLoading ? 'VERIFYING...' : 'LOGIN' }}
+                        {{ authLoading ? 'SE VERIFICĂ...' : 'AUTENTIFICARE' }}
                     </button>
                     <p v-if="authError" class="text-brand-rose text-[10px] font-bold text-center uppercase mt-2 tracking-wide">{{ authError }}</p>
                 </div>
             </div>
         </div>
 
-        <!-- APP CONTENT -->
+        <!-- CONȚINUT APLICAȚIE -->
         <template v-if="user">
-            <!-- Header -->
+            <!-- Antet (Header) -->
             <header class="bg-slate-900/40 backdrop-blur-md border-b border-slate-800/60 px-6 py-4 pt-10 sticky top-0 z-30 flex justify-between items-center shadow-md">
                 <div class="flex items-center gap-3">
                     <div class="w-8 h-8 rounded-xl overflow-hidden border border-slate-750 flex items-center justify-center shadow-md">
-                        <img src="./icon-192.png" alt="SP CREATIV Logo" class="w-full h-full object-cover">
+                        <img src="./icon-192.png" alt="Siglă SP CREATIV" class="w-full h-full object-cover">
                     </div>
                     <div>
                         <h1 class="text-md font-black text-transparent bg-clip-text bg-gradient-to-r from-brand-indigo to-brand-violet italic uppercase leading-none">SP CREATIV</h1>
                         <p class="text-[8px] font-extrabold uppercase mt-1 tracking-wider" :class="isAdmin ? 'text-brand-indigo' : 'text-brand-emerald'">
-                            {{ isAdmin ? 'Administrator' : 'Crew Mode' }} • {{ (user.email || '').split('@')[0] }}
+                            {{ isAdmin ? 'Administrator' : 'Mod Muncitor' }} • {{ (user.email || '').split('@')[0] }}
                         </p>
                     </div>
                 </div>
                 <div class="flex items-center gap-3">
                     <div v-if="loading" class="animate-spin h-3.5 w-3.5 border-2 border-brand-indigo border-t-transparent rounded-full"></div>
-                    <button @click="handleLogout" class="text-[9px] font-black bg-slate-800/80 hover:bg-slate-755 border border-slate-700/50 px-3.5 py-1.5 rounded-full uppercase active:scale-90 transition-all tracking-wider text-slate-300">Logout</button>
+                    <button @click="handleLogout" class="text-[9px] font-black bg-slate-800/80 hover:bg-slate-755 border border-slate-700/50 px-3.5 py-1.5 rounded-full uppercase active:scale-90 transition-all tracking-wider text-slate-300">Deconectare</button>
                 </div>
             </header>
 
             <main class="flex-1 p-4 pb-32 max-w-lg mx-auto w-full">
                 
-                <!-- LOADING SKELETON -->
+                <!-- SCHELET DE ÎNCĂRCARE (LOADING SKELETON) -->
                 <div v-if="loading && sites.length === 0" class="space-y-4 animate-pulse">
                     <div class="glass-panel h-48 rounded-[2.5rem] p-6 space-y-4">
                         <div class="h-4 bg-slate-800 rounded-md w-1/3"></div>
@@ -203,31 +203,31 @@
 
                 <template v-else>
                     <!-- ========================================== -->
-                    <!--               ADMIN VIEWS                  -->
+                    <!--               SECȚIUNI ADMIN               -->
                     <!-- ========================================== -->
                     <template v-if="isAdmin">
                         
-                        <!-- ADMIN VIEW: LOG LABOR -->
+                        <!-- SECȚIUNE ADMIN: ÎNREGISTREAZĂ PONTAJ -->
                         <div v-if="view === 'log'" class="space-y-4">
                             <div class="glass-panel p-6 rounded-[2.5rem] shadow-xl relative overflow-hidden">
                                 <div class="absolute -top-10 -left-10 w-24 h-24 bg-brand-indigo/5 rounded-full blur-2xl pointer-events-none"></div>
-                                <h3 class="text-xs font-black uppercase text-slate-400 mb-5 tracking-widest">Log Labor</h3>
+                                <h3 class="text-xs font-black uppercase text-slate-400 mb-5 tracking-widest">Înregistrează Pontaj</h3>
                                 <div class="grid grid-cols-2 gap-4 mb-4">
                                     <div class="space-y-1.5">
-                                        <label class="text-[9px] font-black text-slate-400 uppercase tracking-widest">Date</label>
+                                        <label class="text-[9px] font-black text-slate-400 uppercase tracking-widest">Data</label>
                                         <input type="date" v-model="form.date" class="w-full glass-input rounded-2xl p-4 border-0 text-xs font-bold outline-none text-white transition-all">
                                     </div>
                                     <div class="space-y-1.5">
-                                        <label class="text-[9px] font-black text-slate-400 uppercase tracking-widest">Hours to Add</label>
+                                        <label class="text-[9px] font-black text-slate-400 uppercase tracking-widest">Ore de Pontat</label>
                                         <input type="number" step="0.5" min="0" v-model="form.hours" class="w-full glass-input rounded-2xl p-4 border-0 text-xs font-bold outline-none text-white transition-all">
                                     </div>
                                 </div>
                                 
                                 <div class="space-y-1.5 mb-5">
-                                    <label class="text-[9px] font-black text-slate-400 uppercase tracking-widest">Project Site</label>
+                                    <label class="text-[9px] font-black text-slate-400 uppercase tracking-widest">Șantier Proiect</label>
                                     <div class="relative">
                                         <select v-model="form.siteId" class="w-full glass-input rounded-2xl p-4 border-0 font-bold text-xs outline-none appearance-none text-white transition-all">
-                                            <option value="" disabled class="bg-slate-900 text-slate-400">Select Site...</option>
+                                            <option value="" disabled class="bg-slate-900 text-slate-400">Selectează Șantierul...</option>
                                             <option v-for="s in activeSites" :key="s.id" :value="s.id" class="bg-slate-900 text-slate-100">{{s.name}}</option>
                                         </select>
                                         <div class="absolute inset-y-0 right-0 flex items-center pr-4 pointer-events-none text-slate-400">
@@ -237,15 +237,15 @@
                                 </div>
 
                                 <div class="space-y-2">
-                                    <label class="text-[9px] font-black text-slate-400 uppercase tracking-widest">Select Crew</label>
+                                    <label class="text-[9px] font-black text-slate-400 uppercase tracking-widest">Selectează Echipa</label>
                                     <div class="grid grid-cols-1 gap-2 max-h-60 overflow-y-auto pr-1 custom-scrollbar">
                                         <button v-for="e in activeEmployees" :key="e.id" @click="toggleEmp(e.id)" 
-                                             :class="form.selected.includes(e.id) ? 'bg-gradient-to-r from-brand-indigo to-brand-violet text-white shadow-lg shadow-brand-indigo/10 border-transparent' : 'bg-slate-900/30 text-slate-400 border-slate-800/80'"
-                                             class="p-4 rounded-2xl font-bold text-left flex justify-between items-center transition-all border hover:border-slate-700/80">
+                                               :class="form.selected.includes(e.id) ? 'bg-gradient-to-r from-brand-indigo to-brand-violet text-white shadow-lg shadow-brand-indigo/10 border-transparent' : 'bg-slate-900/30 text-slate-400 border-slate-800/80'"
+                                               class="p-4 rounded-2xl font-bold text-left flex justify-between items-center transition-all border hover:border-slate-700/80">
                                             <div class="flex flex-col">
                                                 <span class="text-xs" :class="form.selected.includes(e.id) ? 'text-white' : 'text-slate-200'">{{e.name}}</span>
                                                 <span class="text-[8px] uppercase tracking-wide mt-0.5" :class="form.selected.includes(e.id) ? 'text-indigo-200' : 'text-slate-400'">
-                                                    Daily total: {{ getTodayHours(e.id) }}h
+                                                    Total azi: {{ getTodayHours(e.id) }}h
                                                 </span>
                                             </div>
                                             <span v-if="form.selected.includes(e.id)" class="bg-white/20 w-5 h-5 rounded-full flex items-center justify-center text-xs">✓</span>
@@ -253,20 +253,18 @@
                                     </div>
                                 </div>
 
-                                <!-- STRICT ZERO-HOUR PREVENTION -->
+                                <!-- PREVENIRE STRICTĂ ORE ZERO -->
                                 <button @click="saveLabor" :disabled="!form.siteId || !form.selected.length || !form.hours || form.hours <= 0 || loading"
                                         class="w-full bg-gradient-to-r from-brand-indigo to-brand-violet disabled:from-slate-800 disabled:to-slate-800 disabled:text-slate-500 text-white font-black py-4 rounded-2xl mt-8 shadow-xl shadow-brand-indigo/10 active:scale-95 transition-all text-xs tracking-wider">
-                                    {{ loading ? 'SYNCING...' : 'SYNC ENTRIES (' + form.selected.length + ')' }}
+                                    {{ loading ? 'SE SINCRONIZEAZĂ...' : 'SALVEAZĂ PONTAJ (' + form.selected.length + ')' }}
                                 </button>
                             </div>
                         </div>
 
-                        <!-- =========================================================================
-                             ADMIN VIEW: DECONT & MINUSURI (NOUL MODUL FINANCIAR DEDICAT)
-                             ========================================================================= -->
+                        <!-- SECȚIUNE ADMIN: DECONT & MINUSURI -->
                         <div v-if="view === 'settlement'" class="space-y-4">
                             
-                            <!-- Sub-tabs: Calculator Decont vs. Arhivă Deconturi -->
+                            <!-- Sub-taburi: Calculator Decont vs. Arhivă Deconturi -->
                             <div class="flex p-1 bg-slate-900/80 border border-slate-800/80 rounded-2xl shadow-lg items-center">
                                 <button @click="settleSubTab = 'calc'" :class="settleSubTab === 'calc' ? 'bg-gradient-to-r from-brand-indigo to-brand-violet text-white shadow' : 'text-slate-400'" class="flex-1 py-2.5 text-[10px] font-black uppercase rounded-xl transition-all">
                                     💰 Calculator & Minusuri
@@ -286,6 +284,31 @@
                                         <p class="text-[9px] text-slate-500 font-bold uppercase tracking-wider mt-0.5">Ore × Tarif − Scăderi = Rest de Dat</p>
                                     </div>
                                     <input type="month" v-model="settleForm.month" class="glass-input rounded-xl px-3 py-1.5 text-xs font-black text-brand-indigo outline-none">
+                                </div>
+
+                                <!-- BANNER DETECTARE DECONT DUPLICAT -->
+                                <div v-if="existingSettlementForSelection" class="bg-brand-amber/10 border border-brand-amber/30 rounded-2xl p-4 space-y-2">
+                                    <div class="flex items-start gap-2.5">
+                                        <span class="text-base">⚠️</span>
+                                        <div class="flex-1">
+                                            <div class="flex justify-between items-center">
+                                                <h4 class="text-xs font-black text-brand-amber uppercase tracking-wider">Decont Existent Detectat</h4>
+                                                <span class="text-[8px] font-black uppercase px-2 py-0.5 rounded-full"
+                                                      :class="existingSettlementForSelection.status === 'paid' ? 'bg-brand-emerald/20 text-brand-emerald' : 'bg-brand-indigo/20 text-brand-indigo'">
+                                                    {{ existingSettlementForSelection.status === 'paid' ? 'PLĂTIT' : existingSettlementForSelection.status === 'approved' ? 'APROBAT' : 'SCHIȚĂ' }}
+                                                </span>
+                                            </div>
+                                            <p class="text-[9px] text-slate-300 font-semibold mt-1">
+                                                Există deja un decont salvat pentru {{ getEmpName(settleForm.eid) }} în {{ formatMonth(settleForm.month) }} (Rest Net: €{{ (existingSettlementForSelection.net || 0).toLocaleString(undefined, {minimumFractionDigits: 2}) }}).
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <div class="flex justify-end gap-2 pt-1">
+                                        <button @click="loadExistingSettlement(existingSettlementForSelection)" 
+                                                class="text-[8.5px] bg-brand-amber/20 hover:bg-brand-amber/30 text-amber-200 border border-brand-amber/40 px-3 py-1.5 rounded-xl font-black uppercase transition-all">
+                                            📥 Încarcă datele decontului
+                                        </button>
+                                    </div>
                                 </div>
 
                                 <!-- Pas 1: Selectare Muncitor -->
@@ -366,6 +389,28 @@
                                     </button>
                                 </div>
 
+                                <!-- Pas 4: Status Decont & Metodă de Plată -->
+                                <div class="space-y-2 pt-2 border-t border-slate-800/60">
+                                    <label class="text-[9px] font-black text-slate-400 uppercase tracking-widest">4. Stare Decont & Plată</label>
+                                    <div class="grid grid-cols-2 gap-3">
+                                        <div class="space-y-1">
+                                            <span class="text-[8px] text-slate-500 font-bold uppercase">Stare</span>
+                                            <select v-model="settleForm.status" class="w-full glass-input rounded-xl p-2.5 text-xs font-bold outline-none text-white appearance-none">
+                                                <option value="draft" class="bg-slate-900">🟡 Schiță (Draft)</option>
+                                                <option value="approved" class="bg-slate-900">🔵 Aprobat</option>
+                                                <option value="paid" class="bg-slate-900">🟢 Plătit / Achitat</option>
+                                            </select>
+                                        </div>
+                                        <div class="space-y-1">
+                                            <span class="text-[8px] text-slate-500 font-bold uppercase">Metodă Plată</span>
+                                            <select v-model="settleForm.paymentMethod" class="w-full glass-input rounded-xl p-2.5 text-xs font-bold outline-none text-white appearance-none">
+                                                <option value="cash" class="bg-slate-900">💵 Numerar (Cash)</option>
+                                                <option value="bank" class="bg-slate-900">🏦 Transfer Bancar</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+
                                 <!-- CARD MARE REZULTAT: REST DE PLATĂ -->
                                 <div class="bg-gradient-to-br from-brand-emerald/20 via-slate-900/80 to-slate-950 p-5 rounded-3xl border border-brand-emerald/40 space-y-4">
                                     <div class="flex justify-between items-start">
@@ -375,15 +420,21 @@
                                                 €{{ settleNet.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2}) }}
                                             </p>
                                         </div>
-                                        <span class="text-[8.5px] bg-slate-950/80 text-slate-300 font-mono font-bold px-2.5 py-1 rounded-xl border border-slate-800">
-                                            {{ formatMonth(settleForm.month) }}
-                                        </span>
+                                        <div class="text-right">
+                                            <span class="text-[8.5px] bg-slate-950/80 text-slate-300 font-mono font-bold px-2.5 py-1 rounded-xl border border-slate-800 block">
+                                                {{ formatMonth(settleForm.month) }}
+                                            </span>
+                                            <span class="text-[8px] font-extrabold uppercase mt-1 block tracking-wider"
+                                                  :class="settleForm.status === 'paid' ? 'text-brand-emerald' : settleForm.status === 'approved' ? 'text-brand-indigo' : 'text-brand-amber'">
+                                                ● {{ settleForm.status === 'paid' ? 'ACHITAT' : settleForm.status === 'approved' ? 'APROBAT' : 'SCHIȚĂ' }}
+                                            </span>
+                                        </div>
                                     </div>
 
                                     <div class="grid grid-cols-2 gap-2 pt-2">
                                         <button @click="saveSettlementToCloud" :disabled="!settleForm.eid || settleForm.hours <= 0 || loading"
                                                 class="bg-gradient-to-r from-brand-indigo to-brand-violet disabled:from-slate-800 disabled:to-slate-800 disabled:text-slate-500 text-white font-black py-3.5 rounded-2xl text-[10px] uppercase tracking-wider shadow-lg active:scale-95 transition-all flex items-center justify-center gap-1.5">
-                                            <span>💾</span> {{ loading ? 'SAVING...' : 'SALVEAZĂ' }}
+                                            <span>💾</span> {{ loading ? 'SE SALVEAZĂ...' : (existingSettlementForSelection ? 'ACTUALIZEAZĂ' : 'SALVEAZĂ') }}
                                         </button>
                                         <button @click="copyWhatsAppSettlement"
                                                 class="bg-brand-emerald/20 hover:bg-brand-emerald/30 border border-brand-emerald/40 text-brand-emerald font-black py-3.5 rounded-2xl text-[10px] uppercase tracking-wider active:scale-95 transition-all flex items-center justify-center gap-1.5">
@@ -398,10 +449,24 @@
                             <div v-if="settleSubTab === 'archive'" class="space-y-3">
                                 <div class="flex justify-between items-center px-1">
                                     <h3 class="text-xs font-black uppercase text-slate-400 tracking-widest">Arhivă Deconturi</h3>
-                                    <span class="text-[9px] font-bold text-brand-indigo bg-brand-indigo/10 px-2.5 py-0.5 rounded-full">{{ settlements.length }} Salvate</span>
+                                    <span class="text-[9px] font-bold text-brand-indigo bg-brand-indigo/10 px-2.5 py-0.5 rounded-full">{{ filteredSettlements.length }} Filtrate</span>
                                 </div>
 
-                                <div v-for="item in sortedSettlements" :key="item.id" class="glass-panel p-5 rounded-3xl shadow-xl space-y-3 border-slate-800/80">
+                                <!-- FILTRE ARHIVĂ DECONTURI -->
+                                <div class="flex gap-2">
+                                    <select v-model="settleArchiveFilterEid" class="flex-1 glass-input px-3.5 py-2.5 rounded-2xl text-[9px] uppercase tracking-wider font-black outline-none text-white">
+                                        <option value="" class="bg-slate-900">Toți Muncitorii</option>
+                                        <option v-for="e in employees" :key="e.id" :value="e.id" class="bg-slate-900">{{ e.name }}</option>
+                                    </select>
+                                    <select v-model="settleArchiveFilterStatus" class="w-32 glass-input px-3 py-2.5 rounded-2xl text-[9px] uppercase tracking-wider font-black outline-none text-white">
+                                        <option value="" class="bg-slate-900">Toate Stările</option>
+                                        <option value="draft" class="bg-slate-900">🟡 Schiță</option>
+                                        <option value="approved" class="bg-slate-900">🔵 Aprobat</option>
+                                        <option value="paid" class="bg-slate-900">🟢 Plătit</option>
+                                    </select>
+                                </div>
+
+                                <div v-for="item in filteredSettlements" :key="item.id" class="glass-panel p-5 rounded-3xl shadow-xl space-y-3 border-slate-800/80">
                                     <div class="flex justify-between items-start">
                                         <div>
                                             <div class="flex items-center gap-2">
@@ -418,7 +483,16 @@
                                             <span class="text-xs font-black text-brand-emerald block">
                                                 €{{ (item.net || 0).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2}) }}
                                             </span>
-                                            <span class="text-[8px] font-extrabold text-slate-500 uppercase">Rest Net</span>
+                                            <!-- Insigne Status și Metodă Plată -->
+                                            <div class="flex items-center gap-1 justify-end mt-1">
+                                                <span class="text-[7.5px] font-black uppercase px-2 py-0.5 rounded-md"
+                                                      :class="item.status === 'paid' ? 'bg-brand-emerald/20 text-brand-emerald border border-brand-emerald/30' : item.status === 'approved' ? 'bg-brand-indigo/20 text-brand-indigo border border-brand-indigo/30' : 'bg-brand-amber/20 text-brand-amber border border-brand-amber/30'">
+                                                    {{ item.status === 'paid' ? 'PLĂTIT' : item.status === 'approved' ? 'APROBAT' : 'SCHIȚĂ' }}
+                                                </span>
+                                                <span class="text-[8px] text-slate-400" :title="item.paymentMethod === 'bank' ? 'Transfer Bancar' : 'Numerar'">
+                                                    {{ item.paymentMethod === 'bank' ? '🏦' : '💵' }}
+                                                </span>
+                                            </div>
                                         </div>
                                     </div>
 
@@ -429,81 +503,101 @@
                                         </span>
                                     </div>
 
-                                    <div class="flex justify-between items-center pt-2 border-t border-slate-800/60">
-                                        <button @click="copySpecificSettlement(item)" class="text-[8.5px] text-brand-emerald font-black uppercase hover:underline">
-                                            📋 Copiază WhatsApp
-                                        </button>
-                                        <button @click="deleteSettlement(item.id)" class="text-[8.5px] text-brand-rose/60 hover:text-brand-rose font-black uppercase">
-                                            ✕ Șterge
-                                        </button>
+                                    <div class="flex justify-between items-center pt-2 border-t border-slate-800/60 flex-wrap gap-2">
+                                        <!-- Comutator rapid de status -->
+                                        <div class="flex gap-1">
+                                            <button @click="updateSettlementStatus(item.id, 'draft')" 
+                                                    :class="item.status === 'draft' ? 'bg-brand-amber text-slate-950 font-black' : 'bg-slate-900 text-slate-400'" 
+                                                    class="text-[7.5px] uppercase px-2 py-1 rounded-lg font-bold transition-all">Schiță</button>
+                                            <button @click="updateSettlementStatus(item.id, 'approved')" 
+                                                    :class="item.status === 'approved' || !item.status ? 'bg-brand-indigo text-white font-black' : 'bg-slate-900 text-slate-400'" 
+                                                    class="text-[7.5px] uppercase px-2 py-1 rounded-lg font-bold transition-all">Aprobat</button>
+                                            <button @click="updateSettlementStatus(item.id, 'paid')" 
+                                                    :class="item.status === 'paid' ? 'bg-brand-emerald text-slate-950 font-black' : 'bg-slate-900 text-slate-400'" 
+                                                    class="text-[7.5px] uppercase px-2 py-1 rounded-lg font-bold transition-all">Plătit</button>
+                                        </div>
+                                        <div class="flex items-center gap-3">
+                                            <button @click="copySpecificSettlement(item)" class="text-[8.5px] text-brand-emerald font-black uppercase hover:underline">
+                                                📋 WhatsApp
+                                            </button>
+                                            <button @click="deleteSettlement(item.id)" class="text-[8.5px] text-brand-rose/60 hover:text-brand-rose font-black uppercase">
+                                                ✕ Șterge
+                                            </button>
+                                        </div>
                                     </div>
                                 </div>
 
-                                <div v-if="settlements.length === 0" class="text-center py-12 text-slate-500 text-xs font-bold">
-                                    Niciun decont salvat încă.
+                                <div v-if="filteredSettlements.length === 0" class="text-center py-12 text-slate-500 text-xs font-bold">
+                                    Niciun decont găsit conform filtrelor.
                                 </div>
                             </div>
 
                         </div>
 
-                        <!-- ADMIN VIEW: JOBS (Revenue & Partial Payments Upgrades) -->
+                        <!-- SECȚIUNE ADMIN: LUCRĂRI & DEVIZE (CU EDITARE ARTICOLE & CONFIRMARE FINALIZARE) -->
                         <div v-if="view === 'jobs'" class="space-y-6">
                             <div v-for="site in activeSites" :key="site.id" class="glass-panel rounded-[2.5rem] border border-slate-800/80 overflow-hidden shadow-xl">
                                 <div class="p-5 flex justify-between items-center bg-slate-900/60 border-b border-slate-800/60 flex-wrap gap-2">
                                     <div class="flex flex-col">
                                         <span class="font-black uppercase text-xs tracking-wider text-slate-200">{{ site.name }}</span>
-                                        <!-- Outstanding/Contract Breakdown Subtitle -->
                                         <span v-if="!site.isPaid && calculateSiteOwed(site.id) > 0" class="text-[9px] text-brand-rose font-extrabold uppercase mt-1 tracking-wider">
-                                            €{{ calculateSiteOwed(site.id).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2}) }} Outstanding
+                                            €{{ calculateSiteOwed(site.id).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2}) }} Rămas de Încasat
                                         </span>
                                     </div>
                                     <div class="text-right">
                                         <span class="text-sm font-black text-transparent bg-clip-text bg-gradient-to-r from-brand-indigo to-brand-violet block">
-                                            €{{ calculateSitePaid(site.id).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2}) }} Collected
+                                            €{{ calculateSitePaid(site.id).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2}) }} Încasat
                                         </span>
                                         <span v-if="calculateSiteOwed(site.id) > 0" class="text-[8.5px] text-slate-500 font-extrabold block uppercase mt-0.5 tracking-wider">
-                                            of €{{ calculateSiteTotal(site.id).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2}) }} Contract
+                                            din total contract de €{{ calculateSiteTotal(site.id).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2}) }}
                                         </span>
                                     </div>
                                 </div>
                                 <div class="p-5 space-y-4">
-                                    <button @click="togglePaid(site.id)" :class="site.isPaid ? 'bg-brand-emerald/10 text-brand-emerald border-brand-emerald/20' : 'bg-brand-amber/10 text-brand-amber border-brand-amber/20'" class="w-full py-2.5 rounded-xl border font-black text-[9px] uppercase tracking-widest transition-all">
-                                        {{ site.isPaid ? '🟢 FULLY PAID & SETTLED' : '🔴 PARTIALLY COLLECTING / UNPAID' }}
+                                    <!-- Buton cu Confirmare Sigură pentru a nu marca din greșeală -->
+                                    <button @click="requestTogglePaid(site)" 
+                                            :class="site.isPaid ? 'bg-brand-emerald/10 text-brand-emerald border-brand-emerald/20' : 'bg-brand-amber/10 text-brand-amber border-brand-amber/20'" 
+                                            class="w-full py-2.5 rounded-xl border font-black text-[9px] uppercase tracking-widest transition-all active:scale-95 flex items-center justify-center gap-1.5">
+                                        <span>{{ site.isPaid ? '🟢' : '🔴' }}</span>
+                                        <span>{{ site.isPaid ? 'ACHITAT INTEGRAL & FINALIZAT' : 'ÎN LUCRU / NEÎNCASAT INTEGRAL' }}</span>
                                     </button>
 
-                                    <!-- Site Yield Snapshot -->
+                                    <!-- Randament Șantier -->
                                     <div class="bg-slate-950/40 border border-slate-900/60 p-3 rounded-2xl flex justify-between items-center text-center">
                                         <div class="flex-1 border-r border-slate-800/40">
-                                            <p class="text-[8px] font-black text-slate-500 uppercase tracking-wide">Total Hours</p>
+                                            <p class="text-[8px] font-black text-slate-500 uppercase tracking-wide">Total Ore</p>
                                             <p class="text-xs font-black text-slate-200">{{ getAllTimeSiteHours(site.id) }}h</p>
                                         </div>
                                         <div class="flex-1">
-                                            <p class="text-[8px] font-black text-slate-500 uppercase tracking-wide">Hourly Yield</p>
-                                            <p class="text-xs font-black text-brand-indigo">€{{ calculateSiteYield(site.id) }}/hr</p>
+                                            <p class="text-[8px] font-black text-slate-500 uppercase tracking-wide">Randament / Oră</p>
+                                            <p class="text-xs font-black text-brand-indigo">€{{ calculateSiteYield(site.id) }}/h</p>
                                         </div>
                                     </div>
                                     
-                                    <!-- Revenue Items list with Milestone Collection slider -->
+                                    <!-- Listă Articole Deviz (Cu opțiune de Editare ✏️ și Ștergere ✕) -->
                                     <div class="space-y-3">
                                         <div v-for="item in (site.pricingItems || [])" :key="item.id" class="flex flex-col border-b border-slate-800/40 pb-3">
                                             <div class="flex justify-between items-start">
                                                 <div class="flex flex-col">
                                                     <span class="text-xs font-bold text-slate-200">{{item.desc}}</span>
                                                     <span class="text-[8.5px] text-slate-500 font-extrabold uppercase mt-0.5">
-                                                        {{item.qty}}{{item.unit}} x €{{item.price}} 
+                                                        {{item.qty}}{{item.unit}} × €{{item.price}} 
                                                         <span v-if="!site.isPaid" class="text-brand-indigo ml-1">
-                                                            (€{{ ((parseFloat(item.qty)||0) * (parseFloat(item.price)||0) * ((parseFloat(item.paidPercent)||0)/100)).toLocaleString(undefined, {maximumFractionDigits: 2}) }} Paid)
+                                                            (€{{ ((parseFloat(item.qty)||0) * (parseFloat(item.price)||0) * ((parseFloat(item.paidPercent)||0)/100)).toLocaleString(undefined, {maximumFractionDigits: 2}) }} Încasat)
                                                         </span>
                                                     </span>
                                                 </div>
-                                                <div class="flex items-center gap-3">
-                                                    <span class="text-xs font-black text-slate-300">€{{((parseFloat(item.qty)||0) * (parseFloat(item.price)||0)).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}}</span>
-                                                    <button @click="removeItemFromSite(site.id, item.id)" class="text-brand-rose/40 hover:text-brand-rose transition-colors p-1 text-xs">✕</button>
+                                                <div class="flex items-center gap-2">
+                                                    <span class="text-xs font-black text-slate-300 mr-1">€{{((parseFloat(item.qty)||0) * (parseFloat(item.price)||0)).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}}</span>
+                                                    <!-- Buton Editează Articol -->
+                                                    <button @click="openEditSiteItem(site.id, item)" class="text-slate-400 hover:text-brand-indigo transition-colors p-1.5 text-xs" title="Modifică lucrare">✏️</button>
+                                                    <!-- Buton Șterge Articol -->
+                                                    <button @click="removeItemFromSite(site.id, item.id)" class="text-brand-rose/40 hover:text-brand-rose transition-colors p-1.5 text-xs" title="Șterge lucrare">✕</button>
                                                 </div>
                                             </div>
-                                            <!-- Milestone Selector -->
+                                            <!-- Selector Stadiu Încasat -->
                                             <div v-if="!site.isPaid" class="flex items-center justify-between mt-2.5 bg-slate-950/40 px-3 py-2 rounded-xl border border-slate-900/60">
-                                                <span class="text-[8px] font-black uppercase text-slate-400 tracking-wider">Milestone Paid:</span>
+                                                <span class="text-[8px] font-black uppercase text-slate-400 tracking-wider">Stadiu Încasat:</span>
                                                 <div class="flex gap-1">
                                                     <button v-for="pct in [0, 25, 50, 75, 100]" :key="pct"
                                                             @click="updateItemPaymentPercent(site.id, item.id, pct)"
@@ -516,31 +610,127 @@
                                         </div>
                                     </div>
 
-                                    <!-- Add pricing item form -->
+                                    <!-- Formular adăugare articol deviz -->
                                     <div v-if="priceForm[site.id]" class="bg-slate-900/30 border border-slate-800/40 p-4 rounded-3xl space-y-2">
-                                        <input v-model="priceForm[site.id].desc" placeholder="Work description (e.g. Living Room)" class="w-full glass-input p-3 rounded-xl text-xs font-bold outline-none text-white">
+                                        <input v-model="priceForm[site.id].desc" placeholder="Descriere lucrare (ex: Living, Fațadă, Mansardă)" class="w-full glass-input p-3 rounded-xl text-xs font-bold outline-none text-white">
                                         <div class="grid grid-cols-3 gap-2">
-                                            <input v-model.number="priceForm[site.id].qty" type="number" placeholder="Qty" class="glass-input p-3 rounded-xl text-xs font-bold outline-none text-white text-center">
-                                            <input v-model="priceForm[site.id].unit" placeholder="m2" class="glass-input p-3 rounded-xl text-xs font-bold outline-none text-white uppercase text-center">
-                                            <input v-model.number="priceForm[site.id].price" type="number" placeholder="Price" class="glass-input p-3 rounded-xl text-xs font-bold outline-none text-white text-center">
+                                            <input v-model.number="priceForm[site.id].qty" type="number" step="any" placeholder="Cantitate" class="glass-input p-3 rounded-xl text-xs font-bold outline-none text-white text-center">
+                                            <input v-model="priceForm[site.id].unit" placeholder="U.M. (m2)" class="glass-input p-3 rounded-xl text-xs font-bold outline-none text-white uppercase text-center">
+                                            <input v-model.number="priceForm[site.id].price" type="number" step="any" placeholder="Preț (€)" class="glass-input p-3 rounded-xl text-xs font-bold outline-none text-white text-center">
                                         </div>
-                                        <button @click="addItemToSite(site.id)" class="w-full bg-slate-800 hover:bg-slate-700 text-slate-300 font-black py-3 rounded-xl text-[9px] uppercase tracking-wider transition-colors mt-1 active:scale-95">Add Revenue Item</button>
+                                        <button @click="addItemToSite(site.id)" class="w-full bg-slate-800 hover:bg-slate-700 text-slate-300 font-black py-3 rounded-xl text-[9px] uppercase tracking-wider transition-colors mt-1 active:scale-95">Adaugă Articol Deviz</button>
                                     </div>
                                 </div>
                             </div>
                         </div>
 
-                        <!-- ADMIN VIEW: STATS -->
+                        <!-- MODAL EDITARE ARTICOL DEVIZ / LUCRARE -->
+                        <div v-if="editingSiteItem" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                            <div class="glass-panel w-full max-w-sm rounded-3xl p-6 shadow-2xl border-slate-700/60 space-y-4">
+                                <div class="flex justify-between items-center border-b border-slate-800/60 pb-3">
+                                    <h3 class="text-xs font-black uppercase text-slate-200 tracking-wider">Modifică Lucrare / Deviz</h3>
+                                    <button @click="cancelEditSiteItem" class="text-slate-400 hover:text-white text-xs">✕</button>
+                                </div>
+
+                                <div class="space-y-3">
+                                    <div class="space-y-1">
+                                        <label class="text-[8px] font-black text-slate-400 uppercase tracking-widest">Descriere Lucrare</label>
+                                        <input v-model="editingSiteItem.desc" placeholder="ex: Living, Fațadă, Mansardă" class="w-full glass-input rounded-xl p-3 text-xs font-bold text-white outline-none">
+                                    </div>
+                                    <div class="grid grid-cols-3 gap-2">
+                                        <div class="space-y-1">
+                                            <label class="text-[8px] font-black text-slate-400 uppercase tracking-widest text-center block">Cantitate</label>
+                                            <input v-model.number="editingSiteItem.qty" type="number" step="any" min="0" class="w-full glass-input rounded-xl p-3 text-xs font-bold text-white outline-none text-center">
+                                        </div>
+                                        <div class="space-y-1">
+                                            <label class="text-[8px] font-black text-slate-400 uppercase tracking-widest text-center block">U.M.</label>
+                                            <input v-model="editingSiteItem.unit" placeholder="m2" class="w-full glass-input rounded-xl p-3 text-xs font-bold text-white outline-none text-center uppercase">
+                                        </div>
+                                        <div class="space-y-1">
+                                            <label class="text-[8px] font-black text-slate-400 uppercase tracking-widest text-center block">Preț (€)</label>
+                                            <input v-model.number="editingSiteItem.price" type="number" step="any" min="0" class="w-full glass-input rounded-xl p-3 text-xs font-bold text-white outline-none text-center">
+                                        </div>
+                                    </div>
+                                    <div class="p-2.5 bg-slate-900/50 rounded-xl border border-slate-800/60 flex justify-between items-center text-[10px]">
+                                        <span class="text-slate-400 font-bold">Total Recalculat:</span>
+                                        <span class="font-black text-brand-indigo">€{{ ((parseFloat(editingSiteItem.qty)||0) * (parseFloat(editingSiteItem.price)||0)).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2}) }}</span>
+                                    </div>
+                                </div>
+
+                                <div class="grid grid-cols-2 gap-2 pt-2 border-t border-slate-800/60">
+                                    <button @click="cancelEditSiteItem" class="bg-slate-800 hover:bg-slate-700 text-slate-300 font-black py-3 rounded-xl text-[9px] uppercase tracking-wider transition-all">
+                                        Renunță
+                                    </button>
+                                    <button @click="saveEditSiteItem" :disabled="loading || !editingSiteItem.desc" class="bg-gradient-to-r from-brand-indigo to-brand-violet text-white font-black py-3 rounded-xl text-[9px] uppercase tracking-wider shadow active:scale-95 transition-all">
+                                        {{ loading ? 'SE SALVEAZĂ...' : 'SALVEAZĂ' }}
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- MODAL DE CONFIRMARE FINALIZARE / REDESCHIDERE ȘANTIER -->
+                        <div v-if="confirmingFinishSite" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                            <div class="glass-panel w-full max-w-sm rounded-3xl p-6 shadow-2xl border-slate-700/60 space-y-4 text-center animate-toast">
+                                <div class="w-12 h-12 rounded-2xl flex items-center justify-center mx-auto text-2xl"
+                                     :class="!confirmingFinishSite.isPaid ? 'bg-brand-emerald/15 border border-brand-emerald/40 text-brand-emerald' : 'bg-brand-amber/15 border border-brand-amber/40 text-brand-amber'">
+                                    {{ !confirmingFinishSite.isPaid ? '🏁' : '🔄' }}
+                                </div>
+                                
+                                <div>
+                                    <h3 class="text-xs font-black uppercase text-white tracking-wider">
+                                        {{ !confirmingFinishSite.isPaid ? 'Confirmare Finalizare Șantier' : 'Redeschidere Șantier' }}
+                                    </h3>
+                                    <p class="text-xs font-black text-brand-indigo uppercase mt-1">
+                                        {{ confirmingFinishSite.name }}
+                                    </p>
+                                    
+                                    <!-- Sumar Financiar la Finalizare -->
+                                    <div v-if="!confirmingFinishSite.isPaid" class="space-y-2 mt-3.5 text-left bg-slate-950/60 p-3.5 rounded-2xl border border-slate-850 text-[10px]">
+                                        <div class="flex justify-between">
+                                            <span class="text-slate-400 font-bold">Total Contract:</span>
+                                            <span class="font-black text-slate-200">€{{ calculateSiteTotal(confirmingFinishSite.id).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2}) }}</span>
+                                        </div>
+                                        <div class="flex justify-between">
+                                            <span class="text-slate-400 font-bold">Încasat Până Acum:</span>
+                                            <span class="font-black text-brand-emerald">€{{ calculateSitePaid(confirmingFinishSite.id).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2}) }}</span>
+                                        </div>
+                                        <div v-if="calculateSiteOwed(confirmingFinishSite.id) > 0" class="flex justify-between border-t border-slate-800/80 pt-1.5">
+                                            <span class="text-brand-rose font-black uppercase">Sold Rămas Neîncasat:</span>
+                                            <span class="font-black text-brand-rose">€{{ calculateSiteOwed(confirmingFinishSite.id).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2}) }}</span>
+                                        </div>
+                                    </div>
+
+                                    <p class="text-[9px] text-slate-400 font-semibold mt-3 leading-relaxed">
+                                        {{ !confirmingFinishSite.isPaid 
+                                            ? 'Ești sigur că vrei să marchezi acest șantier ca finalizat și achitat integral? Această acțiune va stabili soldul restant la zero.' 
+                                            : 'Ești sigur că dorești să reactivezi acest șantier în lucru pentru noi etape sau încasări parțiale?' }}
+                                    </p>
+                                </div>
+
+                                <div class="grid grid-cols-2 gap-2 pt-2 border-t border-slate-800/60">
+                                    <button @click="cancelTogglePaid" class="bg-slate-800 hover:bg-slate-700 text-slate-300 font-black py-3 rounded-xl text-[9px] uppercase tracking-wider transition-all">
+                                        Renunță
+                                    </button>
+                                    <button @click="confirmTogglePaid" 
+                                            :class="!confirmingFinishSite.isPaid ? 'bg-gradient-to-r from-brand-emerald to-emerald-600 text-slate-950 shadow-brand-emerald/20' : 'bg-gradient-to-r from-brand-amber to-amber-600 text-slate-950 shadow-brand-amber/20'"
+                                            class="font-black py-3 rounded-xl text-[9px] uppercase tracking-wider shadow-lg active:scale-95 transition-all">
+                                        {{ !confirmingFinishSite.isPaid ? 'Da, Finalizează' : 'Da, Redeschide' }}
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- SECȚIUNE ADMIN: STATISTICI -->
                         <div v-if="view === 'stats'" class="space-y-4">
-                            <!-- Timeframe switches -->
+                            <!-- Comutatoare Perioadă -->
                             <div class="flex p-1 bg-slate-900/80 border border-slate-800/80 rounded-2xl sticky top-24 z-10 shadow-lg items-center">
-                                <button @click="statTimeframe = 'Week'; timeOffset = 0" :class="statTimeframe === 'Week' ? 'bg-gradient-to-r from-brand-indigo to-brand-violet text-white shadow' : 'text-slate-400'" class="flex-1 py-2.5 text-[10px] font-black uppercase rounded-xl transition-all">Week</button>
-                                <button @click="statTimeframe = 'Month'; timeOffset = 0" :class="statTimeframe === 'Month' ? 'bg-gradient-to-r from-brand-indigo to-brand-violet text-white shadow' : 'text-slate-400'" class="flex-1 py-2.5 text-[10px] font-black uppercase rounded-xl transition-all">Month</button>
-                                <button @click="statTimeframe = 'All'" :class="statTimeframe === 'All' ? 'bg-gradient-to-r from-brand-indigo to-brand-violet text-white shadow' : 'text-slate-400'" class="flex-1 py-2.5 text-[10px] font-black uppercase rounded-xl transition-all">All</button>
+                                <button @click="statTimeframe = 'Week'; timeOffset = 0" :class="statTimeframe === 'Week' ? 'bg-gradient-to-r from-brand-indigo to-brand-violet text-white shadow' : 'text-slate-400'" class="flex-1 py-2.5 text-[10px] font-black uppercase rounded-xl transition-all">Săptămână</button>
+                                <button @click="statTimeframe = 'Month'; timeOffset = 0" :class="statTimeframe === 'Month' ? 'bg-gradient-to-r from-brand-indigo to-brand-violet text-white shadow' : 'text-slate-400'" class="flex-1 py-2.5 text-[10px] font-black uppercase rounded-xl transition-all">Lună</button>
+                                <button @click="statTimeframe = 'All'" :class="statTimeframe === 'All' ? 'bg-gradient-to-r from-brand-indigo to-brand-violet text-white shadow' : 'text-slate-400'" class="flex-1 py-2.5 text-[10px] font-black uppercase rounded-xl transition-all">Total</button>
                             </div>
 
                             <div v-if="statTimeframe !== 'All'" class="flex justify-between items-center bg-slate-900/40 border border-slate-800/40 p-2 rounded-2xl shadow-sm">
-                                <button @click="timeOffset--" class="px-4 py-2 bg-slate-800/80 hover:bg-slate-700 text-slate-300 font-bold active:scale-95 transition-transform text-[9px] uppercase tracking-wider rounded-xl">← Prev</button>
+                                <button @click="timeOffset--" class="px-4 py-2 bg-slate-800/80 hover:bg-slate-700 text-slate-300 font-bold active:scale-95 transition-transform text-[9px] uppercase tracking-wider rounded-xl">← Prec.</button>
                                 
                                 <div class="flex-1 relative flex justify-center items-center h-full group">
                                     <input v-if="statTimeframe === 'Month'" type="month" v-model="selectedMonth" class="absolute inset-0 w-full h-full opacity-0 z-20 cursor-pointer">
@@ -549,51 +739,51 @@
                                     </span>
                                 </div>
 
-                                <button @click="timeOffset++" class="px-4 py-2 bg-slate-800/80 hover:bg-slate-700 text-slate-300 font-bold active:scale-95 transition-transform text-[9px] uppercase tracking-wider rounded-xl" :class="{'opacity-30': timeOffset === 0}" :disabled="timeOffset === 0">Next →</button>
+                                <button @click="timeOffset++" class="px-4 py-2 bg-slate-800/80 hover:bg-slate-700 text-slate-300 font-bold active:scale-95 transition-transform text-[9px] uppercase tracking-wider rounded-xl" :class="{'opacity-30': timeOffset === 0}" :disabled="timeOffset === 0">Urm. →</button>
                             </div>
 
-                            <!-- Payroll Status Toggle (Only in Month view) -->
+                            <!-- Comutator Stare Salarii Echipă (Doar pe vizualizarea lunară) -->
                             <div v-if="statTimeframe === 'Month'" class="mb-4">
                                 <button @click="togglePayrollPaid(getSelectedMonthStr)" 
                                         :class="isSelectedMonthPaid ? 'bg-brand-emerald/10 border-brand-emerald/20 text-brand-emerald' : 'bg-brand-rose/10 border-brand-rose/20 text-brand-rose'" 
                                         class="w-full py-3.5 rounded-2xl border font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 active:scale-95 transition-transform">
-                                    <span v-if="isSelectedMonthPaid">🟢 Crew Payroll: Paid</span>
-                                    <span v-else>🔴 Crew Payroll: Unpaid</span>
+                                    <span v-if="isSelectedMonthPaid">🟢 Salarii Echipă: Achitate</span>
+                                    <span v-else>🔴 Salarii Echipă: Neachitate</span>
                                 </button>
                             </div>
 
-                            <!-- Full Financial Dashboard -->
+                            <!-- Tablou Financiar Complet -->
                             <div class="glass-panel p-6 rounded-[2.5rem] shadow-xl text-center relative overflow-hidden">
                                 <div class="absolute -top-12 -right-12 w-28 h-28 bg-brand-indigo/10 rounded-full blur-2xl"></div>
-                                <h3 class="text-[9px] font-black text-slate-400 uppercase mb-4 tracking-widest">Financial Overview</h3>
+                                <h3 class="text-[9px] font-black text-slate-400 uppercase mb-4 tracking-widest">Privire de Ansamblu Financiară</h3>
                                 
                                 <div class="grid grid-cols-2 gap-4 border-b border-slate-800/60 pb-5 mb-5">
                                     <div>
-                                        <p class="text-[8px] font-black text-brand-emerald uppercase tracking-wide">Revenue Paid (Collected)</p>
+                                        <p class="text-[8px] font-black text-brand-emerald uppercase tracking-wide">Venituri Încasate</p>
                                         <p class="text-xl font-black text-brand-emerald">€{{ statsRevenue.paid.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2}) }}</p>
                                     </div>
                                     <div>
-                                        <p class="text-[8px] font-black text-brand-amber uppercase tracking-wide">Revenue Owed (Balance)</p>
+                                        <p class="text-[8px] font-black text-brand-amber uppercase tracking-wide">Sold de Încasat (Restant)</p>
                                         <p class="text-xl font-black text-brand-amber">€{{ statsRevenue.unpaid.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2}) }}</p>
                                     </div>
                                 </div>
 
                                 <div class="grid grid-cols-2 gap-4">
                                     <div>
-                                        <p class="text-[8px] font-black text-brand-rose uppercase tracking-wide">Labor Cost</p>
+                                        <p class="text-[8px] font-black text-brand-rose uppercase tracking-wide">Cost Forță de Muncă</p>
                                         <p class="text-xl font-black text-brand-rose">€{{ statsRevenue.laborCost.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2}) }}</p>
                                     </div>
                                     <div>
-                                        <p class="text-[8px] font-black text-brand-indigo uppercase tracking-wide">Net Profit</p>
+                                        <p class="text-[8px] font-black text-brand-indigo uppercase tracking-wide">Profit Net</p>
                                         <p class="text-xl font-black text-brand-indigo">€{{ statsRevenue.profit.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2}) }}</p>
                                     </div>
                                 </div>
                             </div>
 
-                            <!-- Weekly Work Map Visual Indicator -->
+                            <!-- Urmărire Grafic Săptămânal Pontaj -->
                             <div class="glass-panel p-6 rounded-[2.5rem] shadow-xl relative overflow-hidden">
                                 <h3 class="text-[9px] font-black text-slate-400 uppercase mb-4 tracking-widest">
-                                    {{ statTimeframe === 'Week' ? 'Weekly Work Tracker' : 'Weekday Work Trends' }}
+                                    {{ statTimeframe === 'Week' ? 'Urmărire Săptămânală a Muncii' : 'Tendințe Zile Lucrătoare' }}
                                 </h3>
                                 
                                 <div v-if="statTimeframe === 'Week'" class="grid grid-cols-7 gap-2 text-center">
@@ -619,11 +809,11 @@
                                 </div>
                             </div>
 
-                            <!-- Daily Days Worked Breakdown -->
+                            <!-- Desfășurător Zilnic de Ore -->
                             <div class="glass-panel p-6 rounded-[2.5rem] shadow-xl">
                                 <div class="flex justify-between items-center mb-4">
-                                    <h3 class="text-[9px] font-black text-slate-400 uppercase tracking-widest">Daily Breakdown</h3>
-                                    <span class="text-[8px] font-black text-brand-indigo bg-brand-indigo/10 px-2 py-0.5 rounded uppercase">{{ dailyBreakdown.length }} Days Active</span>
+                                    <h3 class="text-[9px] font-black text-slate-400 uppercase tracking-widest">Desfășurător Zilnic</h3>
+                                    <span class="text-[8px] font-black text-brand-indigo bg-brand-indigo/10 px-2 py-0.5 rounded uppercase">{{ dailyBreakdown.length }} Zile Active</span>
                                 </div>
                                 <div class="space-y-2 max-h-56 overflow-y-auto custom-scrollbar pr-2">
                                     <div v-for="day in dailyBreakdown" :key="day.date" class="flex justify-between items-center p-3 bg-slate-900/40 rounded-2xl border border-slate-800/40">
@@ -633,9 +823,9 @@
                                 </div>
                             </div>
 
-                            <!-- Total Hours per Site -->
+                            <!-- Total Ore per Șantier -->
                             <div class="glass-panel p-6 rounded-[2.5rem] shadow-xl">
-                                <h3 class="text-[9px] font-black text-slate-400 uppercase mb-4 tracking-widest">Total Hours per Site</h3>
+                                <h3 class="text-[9px] font-black text-slate-400 uppercase mb-4 tracking-widest">Total Ore per Șantier</h3>
                                 <div v-for="site in sites" :key="site.id" v-show="getSiteHours(site.id) > 0" class="py-3 border-b border-slate-800/40 last:border-0 flex flex-col gap-1.5">
                                     <div class="flex justify-between items-center">
                                         <span class="font-bold text-xs text-slate-200">{{ site.name }}</span>
@@ -647,13 +837,13 @@
                                 </div>
                             </div>
 
-                            <!-- Crew Payroll/Hours (Period) -->
+                            <!-- Plăți Salarii Echipă (Perioadă) -->
                             <div class="glass-panel p-6 rounded-[2.5rem] shadow-xl">
-                                <h3 class="text-[9px] font-black text-slate-400 uppercase mb-4 tracking-widest">Crew Payroll (Period)</h3>
+                                <h3 class="text-[9px] font-black text-slate-400 uppercase mb-4 tracking-widest">Salarii Echipă (Perioadă)</h3>
                                 <div v-for="(data, name) in statsEmpHours" :key="name" class="py-3 border-b border-slate-800/40 last:border-0 flex justify-between items-center">
                                     <div class="flex flex-col">
                                         <span class="font-bold text-xs text-slate-200">{{ name }}</span>
-                                        <span class="text-[9px] text-slate-500 uppercase font-black mt-0.5">€{{ data.rate }}/hr</span>
+                                        <span class="text-[9px] text-slate-500 uppercase font-black mt-0.5">€{{ data.rate }}/oră</span>
                                     </div>
                                     <div class="text-right">
                                         <span class="block text-brand-indigo font-black text-xs">{{ data.hours }}h</span>
@@ -663,65 +853,123 @@
                             </div>
                         </div>
 
-                        <!-- ADMIN VIEW: HISTORY -->
+                        <!-- SECȚIUNE ADMIN: ISTORIC PONTAJE -->
                         <div v-if="view === 'history'" class="space-y-3">
-                            <h3 class="text-xs font-black uppercase text-slate-400 tracking-widest px-2 mb-2">Logs Archive</h3>
+                            <h3 class="text-xs font-black uppercase text-slate-400 tracking-widest px-2 mb-2">Arhivă Pontaje</h3>
                             
                             <div class="flex gap-2 mb-4 overflow-x-auto pb-2 custom-scrollbar">
                                 <select v-model="historyFilters.eid" class="glass-input px-4 py-3 rounded-2xl text-[9px] uppercase tracking-wider font-black outline-none flex-1 text-white">
-                                    <option value="" class="bg-slate-900">All Workers</option>
+                                    <option value="" class="bg-slate-900">Toți Muncitorii</option>
                                     <option v-for="e in employees" :key="e.id" :value="e.id" class="bg-slate-900">{{e.name}}</option>
                                 </select>
                                 <select v-model="historyFilters.sid" class="glass-input px-4 py-3 rounded-2xl text-[9px] uppercase tracking-wider font-black outline-none flex-1 text-white">
-                                    <option value="" class="bg-slate-900">All Sites</option>
+                                    <option value="" class="bg-slate-900">Toate Șantierele</option>
                                     <option v-for="s in sites" :key="s.id" :value="s.id" class="bg-slate-900">{{s.name}}</option>
                                 </select>
                             </div>
 
-                            <div v-for="log in filteredLogs" :key="log.id" class="glass-panel p-4 rounded-2xl shadow-sm flex justify-between items-center">
+                            <div v-for="log in visibleLogs" :key="log.id" class="glass-panel p-4 rounded-2xl shadow-sm flex justify-between items-center">
                                 <div class="space-y-1">
                                     <div class="flex items-center gap-1.5 flex-wrap">
                                         <span class="text-[8px] font-black text-brand-indigo bg-brand-indigo/10 px-2.5 py-0.5 rounded uppercase tracking-wider">{{ log.date }}</span>
-                                        <span class="text-[8px] font-black text-slate-400 bg-slate-800 px-2.5 py-0.5 rounded uppercase tracking-wider">{{ parseFloat(log.h) || 0 }} HRS</span>
+                                        <span class="text-[8px] font-black text-slate-400 bg-slate-800 px-2.5 py-0.5 rounded uppercase tracking-wider">{{ parseFloat(log.h) || 0 }} ORE</span>
                                     </div>
                                     <p class="font-bold text-slate-200 text-xs mt-1.5">{{ getEmpName(log.eid) }}</p>
                                     <p class="text-[9px] text-slate-500 font-extrabold uppercase tracking-wide">{{ getSiteName(log.sid) }}</p>
                                 </div>
-                                <button @click="deleteLog(log.id)" 
-                                    :class="deletingLogId === log.id ? 'bg-brand-rose text-white px-3 py-1.5 rounded-lg text-[9px] font-black uppercase' : 'text-brand-rose/40 hover:text-brand-rose p-2 text-xs font-black'"
-                                    class="active:scale-95 transition-all">
-                                    {{ deletingLogId === log.id ? 'Confirm?' : '✕' }}
+                                <div class="flex items-center gap-1">
+                                    <button @click="openEditLog(log)" class="text-slate-400 hover:text-brand-indigo p-2 text-xs font-black transition-all active:scale-90" title="Editează pontajul">
+                                        ✏️
+                                    </button>
+                                    <button @click="deleteLog(log.id)" 
+                                        :class="deletingLogId === log.id ? 'bg-brand-rose text-white px-3 py-1.5 rounded-lg text-[9px] font-black uppercase' : 'text-brand-rose/40 hover:text-brand-rose p-2 text-xs font-black'"
+                                        class="active:scale-95 transition-all">
+                                        {{ deletingLogId === log.id ? 'Confirmi?' : '✕' }}
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- CONTROL PAGINARE & LIMITĂ ÎNCĂRCARE PONTAJE -->
+                            <div v-if="filteredLogs.length > historyPageLimit" class="text-center pt-2">
+                                <button @click="historyPageLimit += 40" class="w-full py-3 bg-slate-900/60 hover:bg-slate-900 border border-slate-800 rounded-2xl text-[9px] font-black uppercase tracking-widest text-brand-indigo transition-all">
+                                    Afișează încă 40 de înregistrări ({{ visibleLogs.length }} din {{ filteredLogs.length }})
                                 </button>
+                            </div>
+
+                            <div v-if="filteredLogs.length === 0" class="text-center py-10 text-slate-500 text-xs font-bold">
+                                Niciun pontaj găsit conform filtrelor.
                             </div>
                         </div>
 
-                        <!-- ADMIN VIEW: SETUP & SYSTEM -->
+                        <!-- MODAL EDITARE PONTAJ -->
+                        <div v-if="editingLog" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                            <div class="glass-panel w-full max-w-sm rounded-3xl p-6 shadow-2xl border-slate-700/60 space-y-4">
+                                <div class="flex justify-between items-center border-b border-slate-800/60 pb-3">
+                                    <h3 class="text-xs font-black uppercase text-slate-200 tracking-wider">Editează Pontaj</h3>
+                                    <button @click="cancelEditLog" class="text-slate-400 hover:text-white text-xs">✕</button>
+                                </div>
+
+                                <div class="space-y-3">
+                                    <div class="space-y-1">
+                                        <label class="text-[8px] font-black text-slate-400 uppercase tracking-widest">Data</label>
+                                        <input type="date" v-model="editingLog.date" class="w-full glass-input rounded-xl p-3 text-xs font-bold text-white outline-none">
+                                    </div>
+                                    <div class="space-y-1">
+                                        <label class="text-[8px] font-black text-slate-400 uppercase tracking-widest">Ore Lucrate</label>
+                                        <input type="number" step="0.5" min="0.5" v-model.number="editingLog.h" class="w-full glass-input rounded-xl p-3 text-xs font-bold text-white outline-none">
+                                    </div>
+                                    <div class="space-y-1">
+                                        <label class="text-[8px] font-black text-slate-400 uppercase tracking-widest">Muncitor</label>
+                                        <select v-model="editingLog.eid" class="w-full glass-input rounded-xl p-3 text-xs font-bold text-white outline-none">
+                                            <option v-for="e in employees" :key="e.id" :value="e.id" class="bg-slate-900">{{ e.name }}</option>
+                                        </select>
+                                    </div>
+                                    <div class="space-y-1">
+                                        <label class="text-[8px] font-black text-slate-400 uppercase tracking-widest">Șantier</label>
+                                        <select v-model="editingLog.sid" class="w-full glass-input rounded-xl p-3 text-xs font-bold text-white outline-none">
+                                            <option v-for="s in sites" :key="s.id" :value="s.id" class="bg-slate-900">{{ s.name }}</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <div class="grid grid-cols-2 gap-2 pt-2 border-t border-slate-800/60">
+                                    <button @click="cancelEditLog" class="bg-slate-800 hover:bg-slate-700 text-slate-300 font-black py-3 rounded-xl text-[9px] uppercase tracking-wider transition-all">
+                                        Renunță
+                                    </button>
+                                    <button @click="saveEditLog" :disabled="loading || !editingLog.h || editingLog.h <= 0" class="bg-gradient-to-r from-brand-indigo to-brand-violet text-white font-black py-3 rounded-xl text-[9px] uppercase tracking-wider shadow active:scale-95 transition-all">
+                                        {{ loading ? 'SE SALVEAZĂ...' : 'SALVEAZĂ' }}
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- SECȚIUNE ADMIN: CONFIGURARE & SISTEM -->
                         <div v-if="view === 'setup'" class="space-y-6">
                             <div class="space-y-3 px-1">
-                                <h2 class="font-black text-md uppercase tracking-wider text-slate-200">System Management</h2>
+                                <h2 class="font-black text-md uppercase tracking-wider text-slate-200">Administrare Sistem</h2>
                                 
                                 <div class="glass-panel p-5 rounded-3xl space-y-4">
-                                    <h3 class="text-[9px] font-black text-slate-400 uppercase tracking-widest">Add Project Site</h3>
+                                    <h3 class="text-[9px] font-black text-slate-400 uppercase tracking-widest">Adaugă Șantier Nou</h3>
                                     <div class="flex gap-2">
-                                        <input v-model="news.site" placeholder="Site Name" class="flex-1 glass-input p-3.5 rounded-xl border-0 text-xs font-semibold outline-none text-white uppercase">
+                                        <input v-model="news.site" placeholder="Nume Șantier" class="flex-1 glass-input p-3.5 rounded-xl border-0 text-xs font-semibold outline-none text-white uppercase">
                                         <button @click="addSite" class="bg-gradient-to-r from-brand-indigo to-brand-violet text-white px-5 rounded-xl font-black text-xs active:scale-95 transition-all">+</button>
                                     </div>
                                 </div>
 
                                 <div class="glass-panel p-5 rounded-3xl space-y-3">
-                                    <h3 class="text-[9px] font-black text-slate-400 uppercase tracking-widest">Add Worker</h3>
+                                    <h3 class="text-[9px] font-black text-slate-400 uppercase tracking-widest">Adaugă Muncitor</h3>
                                     <div class="space-y-2">
                                         <div class="flex gap-2">
-                                            <input v-model="news.emp" placeholder="Worker Name" class="flex-1 glass-input p-3.5 rounded-xl border-0 text-xs font-semibold outline-none text-white">
-                                            <input v-model.number="news.empRate" type="number" placeholder="€/hr" class="w-20 glass-input p-3.5 rounded-xl border-0 text-xs font-semibold outline-none text-white text-center">
+                                            <input v-model="news.emp" placeholder="Nume Muncitor" class="flex-1 glass-input p-3.5 rounded-xl border-0 text-xs font-semibold outline-none text-white">
+                                            <input v-model.number="news.empRate" type="number" placeholder="€/oră" class="w-20 glass-input p-3.5 rounded-xl border-0 text-xs font-semibold outline-none text-white text-center">
                                         </div>
-                                        <input v-model="news.empEmail" type="email" placeholder="Email (For Crew Login)" class="w-full glass-input p-3.5 rounded-xl border-0 text-xs font-semibold outline-none text-white">
-                                        <button @click="addEmp" class="w-full bg-gradient-to-r from-brand-indigo to-brand-violet text-white py-3.5 rounded-xl font-black text-xs active:scale-95 transition-all uppercase tracking-wider mt-1">Create Worker Account</button>
+                                        <input v-model="news.empEmail" type="email" placeholder="Email (Pentru conectare muncitor)" class="w-full glass-input p-3.5 rounded-xl border-0 text-xs font-semibold outline-none text-white">
+                                        <button @click="addEmp" class="w-full bg-gradient-to-r from-brand-indigo to-brand-violet text-white py-3.5 rounded-xl font-black text-xs active:scale-95 transition-all uppercase tracking-wider mt-1">Creează Cont Muncitor</button>
                                     </div>
                                 </div>
                                 
                                 <div class="space-y-3 pt-4">
-                                    <h3 class="text-[9px] font-black text-slate-400 uppercase tracking-widest pl-2">Active Crew Roster</h3>
+                                    <h3 class="text-[9px] font-black text-slate-400 uppercase tracking-widest pl-2">Echipa Activă</h3>
                                     <div v-for="e in activeEmployees" :key="e.id" class="glass-panel p-4 rounded-2xl flex flex-col gap-3 shadow-md border-slate-800/80">
                                         <div class="flex justify-between items-start">
                                             <div class="flex flex-col">
@@ -730,27 +978,27 @@
                                                     <div class="flex items-center glass-input rounded-lg px-2 py-0.5">
                                                         <span class="text-[9px] font-black text-slate-400">€</span>
                                                         <input v-model.number="empRates[e.id]" type="number" class="w-8 bg-transparent text-[10px] font-black border-0 outline-none text-center text-white" @blur="updateEmpRate(e.id)">
-                                                        <span class="text-[9px] font-black text-slate-400">/hr</span>
+                                                        <span class="text-[9px] font-black text-slate-400">/h</span>
                                                     </div>
                                                 </div>
                                             </div>
                                             <button @click="archiveEmp(e.id)" 
                                                 :class="deletingEmpId === e.id ? 'bg-brand-rose text-white' : 'text-brand-rose/40 bg-brand-rose/10 hover:text-brand-rose'"
                                                 class="text-[9px] font-black uppercase px-2.5 py-1.5 rounded-xl transition-all">
-                                                {{ deletingEmpId === e.id ? 'Confirm?' : 'Archive' }}
+                                                {{ deletingEmpId === e.id ? 'Confirmi?' : 'Arhivează' }}
                                             </button>
                                         </div>
 
                                         <div class="border-t border-slate-850 pt-2.5">
                                             <div class="flex flex-col gap-1">
-                                                <label class="text-[8px] font-black uppercase text-slate-500">Linked Login Email</label>
+                                                <label class="text-[8px] font-black uppercase text-slate-500">Email Conectare Asociat</label>
                                                 <div v-if="e.email" class="flex items-center justify-between bg-slate-900/30 p-2 rounded-lg border border-slate-800/50">
                                                     <span class="text-[9px] text-slate-300 font-bold overflow-hidden text-ellipsis whitespace-nowrap">{{e.email}}</span>
-                                                    <button @click="unlinkEmpEmail(e.id)" class="text-[8px] uppercase font-bold text-brand-rose hover:underline pl-1">Clear</button>
+                                                    <button @click="unlinkEmpEmail(e.id)" class="text-[8px] uppercase font-bold text-brand-rose hover:underline pl-1">Șterge</button>
                                                 </div>
                                                 <div v-else class="flex gap-1">
-                                                    <input v-model="empEmails[e.id]" placeholder="Link email..." class="text-[9px] glass-input p-2 rounded-lg border-0 outline-none w-full text-white">
-                                                    <button @click="linkEmpEmail(e.id)" class="text-[8px] bg-brand-indigo text-white px-2.5 rounded-lg font-bold">Link</button>
+                                                    <input v-model="empEmails[e.id]" placeholder="Asociază email..." class="text-[9px] glass-input p-2 rounded-lg border-0 outline-none w-full text-white">
+                                                    <button @click="linkEmpEmail(e.id)" class="text-[8px] bg-brand-indigo text-white px-2.5 rounded-lg font-bold">Conectează</button>
                                                 </div>
                                             </div>
                                         </div>
@@ -758,13 +1006,13 @@
                                 </div>
 
                                 <div class="space-y-3 pt-6">
-                                    <h3 class="text-[9px] font-black text-slate-400 uppercase tracking-widest pl-2">Active Sites</h3>
+                                    <h3 class="text-[9px] font-black text-slate-400 uppercase tracking-widest pl-2">Șantiere Active</h3>
                                     <div v-for="s in activeSites" :key="s.id" class="glass-panel p-4 rounded-2xl flex justify-between items-center shadow-md border-slate-800/80">
                                         <span class="font-bold text-xs text-slate-200 uppercase">{{s.name}}</span>
                                         <button @click="archiveSite(s.id)" 
                                             :class="deletingSiteId === s.id ? 'bg-brand-rose text-white' : 'text-brand-rose/40 bg-brand-rose/10 hover:text-brand-rose'"
                                             class="text-[9px] font-black uppercase px-2.5 py-1.5 rounded-xl transition-all">
-                                            {{ deletingSiteId === s.id ? 'Confirm?' : 'Archive' }}
+                                            {{ deletingSiteId === s.id ? 'Confirmi?' : 'Arhivează' }}
                                         </button>
                                     </div>
                                 </div>
@@ -774,21 +1022,21 @@
 
 
                     <!-- ========================================== -->
-                    <!--               WORKER VIEWS                 -->
+                    <!--             SECȚIUNI MUNCITOR              -->
                     <!-- ========================================== -->
                     <template v-else>
                         
-                        <!-- WORKER VIEW: MY HOURS STATS -->
+                        <!-- VIZUALIZARE MUNCITOR: STATISTICI ORE PERSONALE -->
                         <div v-if="view === 'my_stats'" class="space-y-4">
-                            <!-- Period switcher -->
+                            <!-- Comutator Perioadă -->
                             <div class="flex p-1 bg-slate-900/80 border border-slate-800/80 rounded-2xl sticky top-24 z-10 shadow-lg items-center">
-                                <button @click="statTimeframe = 'Week'; timeOffset = 0" :class="statTimeframe === 'Week' ? 'bg-gradient-to-r from-brand-indigo to-brand-violet text-white shadow' : 'text-slate-400'" class="flex-1 py-2.5 text-[10px] font-black uppercase rounded-xl transition-all">Week</button>
-                                <button @click="statTimeframe = 'Month'; timeOffset = 0" :class="statTimeframe === 'Month' ? 'bg-gradient-to-r from-brand-indigo to-brand-violet text-white shadow' : 'text-slate-400'" class="flex-1 py-2.5 text-[10px] font-black uppercase rounded-xl transition-all">Month</button>
-                                <button @click="statTimeframe = 'All'" :class="statTimeframe === 'All' ? 'bg-gradient-to-r from-brand-indigo to-brand-violet text-white shadow' : 'text-slate-400'" class="flex-1 py-2.5 text-[10px] font-black uppercase rounded-xl transition-all">All</button>
+                                <button @click="statTimeframe = 'Week'; timeOffset = 0" :class="statTimeframe === 'Week' ? 'bg-gradient-to-r from-brand-indigo to-brand-violet text-white shadow' : 'text-slate-400'" class="flex-1 py-2.5 text-[10px] font-black uppercase rounded-xl transition-all">Săptămână</button>
+                                <button @click="statTimeframe = 'Month'; timeOffset = 0" :class="statTimeframe === 'Month' ? 'bg-gradient-to-r from-brand-indigo to-brand-violet text-white shadow' : 'text-slate-400'" class="flex-1 py-2.5 text-[10px] font-black uppercase rounded-xl transition-all">Lună</button>
+                                <button @click="statTimeframe = 'All'" :class="statTimeframe === 'All' ? 'bg-gradient-to-r from-brand-indigo to-brand-violet text-white shadow' : 'text-slate-400'" class="flex-1 py-2.5 text-[10px] font-black uppercase rounded-xl transition-all">Total</button>
                             </div>
 
                             <div v-if="statTimeframe !== 'All'" class="flex justify-between items-center bg-slate-900/40 border border-slate-800/40 p-2 rounded-2xl shadow-sm">
-                                <button @click="timeOffset--" class="px-4 py-2 bg-slate-800/80 hover:bg-slate-700 text-slate-300 font-bold active:scale-95 transition-transform text-[9px] uppercase tracking-wider rounded-xl">← Prev</button>
+                                <button @click="timeOffset--" class="px-4 py-2 bg-slate-800/80 hover:bg-slate-700 text-slate-300 font-bold active:scale-95 transition-transform text-[9px] uppercase tracking-wider rounded-xl">← Prec.</button>
                                 
                                 <div class="flex-1 relative flex justify-center items-center h-full group">
                                     <input v-if="statTimeframe === 'Month'" type="month" v-model="selectedMonth" class="absolute inset-0 w-full h-full opacity-0 z-20 cursor-pointer">
@@ -797,19 +1045,19 @@
                                     </span>
                                 </div>
 
-                                <button @click="timeOffset++" class="px-4 py-2 bg-slate-800/80 hover:bg-slate-700 text-slate-300 font-bold active:scale-95 transition-transform text-[9px] uppercase tracking-wider rounded-xl" :class="{'opacity-30': timeOffset === 0}" :disabled="timeOffset === 0">Next →</button>
+                                <button @click="timeOffset++" class="px-4 py-2 bg-slate-800/80 hover:bg-slate-700 text-slate-300 font-bold active:scale-95 transition-transform text-[9px] uppercase tracking-wider rounded-xl" :class="{'opacity-30': timeOffset === 0}" :disabled="timeOffset === 0">Urm. →</button>
                             </div>
 
-                            <!-- Big Total Hours Card -->
+                            <!-- Card Mare Total Ore -->
                             <div class="glass-panel p-8 rounded-[2.5rem] shadow-xl text-center relative overflow-hidden">
                                 <div class="absolute -top-12 -right-12 w-28 h-28 bg-brand-indigo/10 rounded-full blur-2xl"></div>
-                                <h3 class="text-[9px] font-black text-slate-400 uppercase mb-2 tracking-widest">Total Logged Hours</h3>
+                                <h3 class="text-[9px] font-black text-slate-400 uppercase mb-2 tracking-widest">Total Ore Înregistrate</h3>
                                 <p class="text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-brand-indigo to-brand-violet">
-                                    {{ myTotalHours }}<span class="text-xl text-slate-400 ml-1.5 font-bold">HRS</span>
+                                    {{ myTotalHours }}<span class="text-xl text-slate-400 ml-1.5 font-bold">ORE</span>
                                 </p>
                             </div>
 
-                            <!-- My Settlement / Decont Card (If exists for current worker) -->
+                            <!-- Card Fișă Decont Muncitor (Dacă există pentru muncitorul conectat) -->
                             <div v-if="myLatestSettlement" class="glass-panel p-6 rounded-[2.5rem] shadow-xl border-brand-indigo/30 space-y-3">
                                 <div class="flex justify-between items-center">
                                     <span class="text-[9px] font-black uppercase text-brand-indigo tracking-widest">Fișă Decont & Salariu ({{ formatMonth(myLatestSettlement.month) }})</span>
@@ -839,10 +1087,10 @@
                                 </div>
                             </div>
 
-                            <!-- Weekly Visual Tracker -->
+                            <!-- Grafic Săptămânal Pontaj Muncitor -->
                             <div class="glass-panel p-6 rounded-[2.5rem] shadow-xl relative overflow-hidden">
                                 <h3 class="text-[9px] font-black text-slate-400 uppercase mb-4 tracking-widest">
-                                    {{ statTimeframe === 'Week' ? 'My Weekly Work Map' : 'My Weekday Trends' }}
+                                    {{ statTimeframe === 'Week' ? 'Grafic Săptămânal Pontaj' : 'Tendințe Zile Lucrătoare' }}
                                 </h3>
                                 
                                 <div v-if="statTimeframe === 'Week'" class="grid grid-cols-7 gap-2 text-center">
@@ -860,7 +1108,8 @@
                                     <div v-for="day in weekdayDistribution" :key="day.day" class="flex items-center gap-3">
                                         <span class="text-[10px] font-black text-slate-400 w-8 uppercase">{{ day.day }}</span>
                                         <div class="flex-1 bg-slate-900 rounded-full h-2.5 overflow-hidden border border-slate-800/40">
-                                            <div class="bg-gradient-to-r from-brand-indigo to-brand-violet h-2.5 rounded-full" :style="{ width: day.percentage + '%' }"></div>
+                                            <div class="bg-gradient-to-r from-brand-indigo to-brand-violet h-full rounded-full" 
+                                                 :style="{ width: day.percentage + '%' }"></div>
                                         </div>
                                         <span class="text-[10px] font-black text-slate-300 w-8 text-right">{{ day.hours }}h</span>
                                     </div>
@@ -868,19 +1117,23 @@
                             </div>
                         </div>
 
-                        <!-- WORKER VIEW: MY HISTORY -->
+                        <!-- VIZUALIZARE MUNCITOR: ISTORIC PERSONAL -->
                         <div v-if="view === 'my_history'" class="space-y-3">
-                            <h3 class="text-xs font-black uppercase text-slate-400 tracking-widest px-2 mb-2">History</h3>
+                            <h3 class="text-xs font-black uppercase text-slate-400 tracking-widest px-2 mb-2">Istoric Pontaj</h3>
                             
                             <div v-for="log in mySortedLogs" :key="log.id" class="glass-panel p-4 rounded-2xl shadow-sm flex justify-between items-center">
                                 <div class="space-y-1">
                                     <div class="flex items-center gap-1.5">
                                         <span class="text-[8px] font-black text-brand-indigo bg-brand-indigo/10 px-2.5 py-0.5 rounded uppercase tracking-wider">{{ log.date }}</span>
-                                        <span class="text-[8px] font-black text-brand-emerald bg-brand-emerald/10 px-2.5 py-0.5 rounded uppercase tracking-wider">Confirmed</span>
+                                        <span class="text-[8px] font-black text-brand-emerald bg-brand-emerald/10 px-2.5 py-0.5 rounded uppercase tracking-wider">Confirmat</span>
                                     </div>
                                     <h4 class="font-bold text-slate-200 text-xs mt-1.5">{{ getSiteName(log.sid) }}</h4>
                                 </div>
                                 <span class="text-lg font-black text-brand-indigo">{{ parseFloat(log.h) || 0 }}<span class="text-xs text-slate-500 font-bold ml-0.5">h</span></span>
+                            </div>
+
+                            <div v-if="mySortedLogs.length === 0" class="text-center py-10 text-slate-500 text-xs font-bold">
+                                Nicio înregistrare de ore găsită.
                             </div>
                         </div>
 
@@ -889,24 +1142,24 @@
             </main>
 
             <!-- ========================================== -->
-            <!--                  NAVBARS                   -->
+            <!--            BARĂ DE NAVIGARE (NAVBARS)       -->
             <!-- ========================================== -->
 
-            <!-- ADMIN NAVBAR (ACUM CU BUTONUL SEPARAT: DECONT) -->
+            <!-- BARĂ NAVIGARE ADMINISTRATOR -->
             <nav v-if="isAdmin" class="fixed bottom-0 left-0 right-0 bg-slate-950/90 backdrop-blur-xl border-t border-slate-800/80 px-2 sm:px-4 py-3 pb-8 flex justify-around safe-bottom z-40 shadow-2xl">
-                <!-- Log -->
+                <!-- Pontaj (Log) -->
                 <button @click="view = 'log'" :class="{ 'active-nav': view === 'log' }" class="text-slate-500 hover:text-slate-300 transition-all flex flex-col items-center relative py-1">
                     <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M17.414 2.586a2 2 0 00-2.828 0L7 10.172V13h2.828l7.586-7.586a2 2 0 000-2.828z"></path><path fill-rule="evenodd" d="M2 6a2 2 0 012-2h4a1 1 0 010 2H4v10h10v-4a1 1 0 112 0v4a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" clip-rule="evenodd"></path></svg>
-                    <span class="text-[7.5px] font-black uppercase mt-1 tracking-wider">Log</span>
+                    <span class="text-[7.5px] font-black uppercase mt-1 tracking-wider">Pontaj</span>
                 </button>
 
-                <!-- Jobs -->
+                <!-- Lucrări (Jobs) -->
                 <button @click="view = 'jobs'" :class="{ 'active-nav': view === 'jobs' }" class="text-slate-500 hover:text-slate-300 transition-all flex flex-col items-center relative py-1">
                     <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M4 4a2 2 0 00-2 2v1h16V6a2 2 0 00-2-2H4z"></path><path fill-rule="evenodd" d="M18 9H2v5a2 2 0 002 2h12a2 2 0 002-2V9zM4 13a1 1 0 011-1h1a1 1 0 110 2H5a1 1 0 01-1-1zm5-1a1 1 0 100 2h1a1 1 0 100-2H9z" clip-rule="evenodd"></path></svg>
-                    <span class="text-[7.5px] font-black uppercase mt-1 tracking-wider">Jobs</span>
+                    <span class="text-[7.5px] font-black uppercase mt-1 tracking-wider">Lucrări</span>
                 </button>
 
-                <!-- NOUL MENIU: DECONT & MINUSURI -->
+                <!-- Decont & Minusuri -->
                 <button @click="view = 'settlement'" :class="{ 'active-nav': view === 'settlement' }" class="text-slate-500 hover:text-slate-300 transition-all flex flex-col items-center relative py-1">
                     <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
                         <path d="M4 4a2 2 0 00-2 2v1h16V6a2 2 0 00-2-2H4z"/>
@@ -915,46 +1168,46 @@
                     <span class="text-[7.5px] font-black uppercase mt-1 tracking-wider text-brand-indigo">Decont</span>
                 </button>
 
-                <!-- Stats -->
+                <!-- Statistici (Stats) -->
                 <button @click="view = 'stats'" :class="{ 'active-nav': view === 'stats' }" class="text-slate-500 hover:text-slate-300 transition-all flex flex-col items-center relative py-1">
                     <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M2 11a1 1 0 011-1h2a1 1 0 011 1v5a1 1 0 01-1 1H3a1 1 0 01-1-1v-5zM8 7a1 1 0 011-1h2a1 1 0 011 1v9a1 1 0 01-1 1H9a1 1 0 01-1-1V7zM14 4a1 1 0 011-1h2a1 1 0 011 1v12a1 1 0 01-1 1h-2a1 1 0 01-1-1V4z"></path></svg>
-                    <span class="text-[7.5px] font-black uppercase mt-1 tracking-wider">Stats</span>
+                    <span class="text-[7.5px] font-black uppercase mt-1 tracking-wider">Statistici</span>
                 </button>
 
-                <!-- History -->
+                <!-- Istoric (History) -->
                 <button @click="view = 'history'" :class="{ 'active-nav': view === 'history' }" class="text-slate-500 hover:text-slate-300 transition-all flex flex-col items-center relative py-1">
                     <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd"></path></svg>
-                    <span class="text-[7.5px] font-black uppercase mt-1 tracking-wider">History</span>
+                    <span class="text-[7.5px] font-black uppercase mt-1 tracking-wider">Istoric</span>
                 </button>
 
-                <!-- Setup -->
+                <!-- Setări (Setup) -->
                 <button @click="view = 'setup'" :class="{ 'active-nav': view === 'setup' }" class="text-slate-500 hover:text-slate-300 transition-all flex flex-col items-center relative py-1">
                     <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.533 1.533 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.533 1.533 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd"></path></svg>
-                    <span class="text-[7.5px] font-black uppercase mt-1 tracking-wider">Setup</span>
+                    <span class="text-[7.5px] font-black uppercase mt-1 tracking-wider">Setări</span>
                 </button>
             </nav>
 
-            <!-- WORKER NAVBAR -->
+            <!-- BARĂ NAVIGARE MUNCITOR -->
             <nav v-else class="fixed bottom-0 left-0 right-0 bg-slate-950/90 backdrop-blur-xl border-t border-slate-800/80 px-6 py-4 pb-8 flex justify-around safe-bottom z-40 shadow-2xl">
                 <button @click="view = 'my_stats'" :class="{ 'active-nav': view === 'my_stats' }" class="text-slate-500 hover:text-slate-300 transition-all flex flex-col items-center w-24">
                     <svg class="w-5.5 h-5.5" fill="currentColor" viewBox="0 0 20 20"><path d="M2 11a1 1 0 011-1h2a1 1 0 011 1v5a1 1 0 01-1 1H3a1 1 0 01-1-1v-5zM8 7a1 1 0 011-1h2a1 1 0 011 1v9a1 1 0 01-1 1H9a1 1 0 01-1-1V7zM14 4a1 1 0 011-1h2a1 1 0 011 1v12a1 1 0 01-1 1h-2a1 1 0 01-1-1V4z"></path></svg>
-                    <span class="text-[8px] font-black uppercase mt-1 tracking-wider">My Hours</span>
+                    <span class="text-[8px] font-black uppercase mt-1 tracking-wider">Orele Mele</span>
                 </button>
                 <button @click="view = 'my_history'" :class="{ 'active-nav': view === 'my_history' }" class="text-slate-500 hover:text-slate-300 transition-all flex flex-col items-center w-24">
                     <svg class="w-5.5 h-5.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd"></path></svg>
-                    <span class="text-[8px] font-black uppercase mt-1 tracking-wider">History</span>
+                    <span class="text-[8px] font-black uppercase mt-1 tracking-wider">Istoric</span>
                 </button>
             </nav>
         </template>
 
     </div>
 
-    <!-- Firebase Libraries -->
+    <!-- Biblioteci Firebase -->
     <script type="module">
         import { initializeApp, getApps, getApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut, initializeAuth, indexedDBLocalPersistence, browserLocalPersistence } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         
-        // Correct imports for Firestore
+        // Importuri Firestore
         import { 
             getFirestore as initFirestore, 
             collection as fsCollection, 
@@ -966,7 +1219,7 @@
             onSnapshot as fsOnSnapshot 
         } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // iOS module compatibility
+        // Compatibilitate module iOS
         const { createApp, ref, reactive, computed, onMounted, watch } = window.Vue || Vue;
 
         const firebaseConfig = {
@@ -986,7 +1239,7 @@
                 persistence: [indexedDBLocalPersistence, browserLocalPersistence]
             });
         } catch (e) {
-            console.warn("Auth initialization fallback triggered:", e);
+            console.warn("Inițializare Auth de rezervă activată:", e);
             auth = getAuth(fbApp);
         }
 
@@ -1006,9 +1259,9 @@
                 const sites = ref([]);
                 const employees = ref([]);
                 const logs = ref([]);
-                const settlements = ref([]); // Noul state sincronizat cu Cloud pentru deconturi
+                const settlements = ref([]);
                 
-                // Form models
+                // Modele formular
                 const form = ref({ 
                     date: new Date().toISOString().split('T')[0], 
                     hours: 8, 
@@ -1016,8 +1269,8 @@
                     selected: [] 
                 });
 
-                // State pentru Noul Meniu: Decont & Minusuri
-                const settleSubTab = ref('calc'); // 'calc' | 'archive'
+                // Stare Formular Decont
+                const settleSubTab = ref('calc');
                 const dInit = new Date();
                 const currentMonthStr = `${dInit.getFullYear()}-${String(dInit.getMonth() + 1).padStart(2, '0')}`;
                 
@@ -1026,12 +1279,27 @@
                     eid: '',
                     hours: '',
                     rate: 0,
+                    status: 'approved',
+                    paymentMethod: 'cash',
                     deductions: [
                         { id: '1', reason: 'Motorină dubă / șantier', amount: '' },
                         { id: '2', reason: 'Bonuri de masă', amount: '' },
                         { id: '3', reason: 'Obiecte cumpărate / Scule', amount: '' }
                     ]
                 });
+
+                const settleArchiveFilterEid = ref('');
+                const settleArchiveFilterStatus = ref('');
+
+                // Stare editare inline pontaje & limită paginare
+                const editingLog = ref(null);
+                const historyPageLimit = ref(40);
+
+                // Stare editare articole deviz / lucrări șantier
+                const editingSiteItem = ref(null);
+
+                // Stare confirmare finalizare / redeschidere șantier
+                const confirmingFinishSite = ref(null);
 
                 const deductionPresets = [
                     { label: '⛽ Motorină', reason: 'Motorină dubă / șantier' },
@@ -1042,7 +1310,7 @@
                     { label: '❌ Absență', reason: 'Penalizare absență nemotivată' }
                 ];
 
-                // Feature additions
+                // Stare adițională
                 const news = ref({ site: '', emp: '', empRate: '', empEmail: '' });
                 const empEmails = reactive({});
                 const empRates = reactive({});
@@ -1050,12 +1318,12 @@
                 const payrollStatus = ref([]);
                 const historyFilters = reactive({ eid: '', sid: '' });
 
-                // Inline Confirmation States
+                // Stări de confirmare la ștergere
                 const deletingLogId = ref(null);
                 const deletingSiteId = ref(null);
                 const deletingEmpId = ref(null);
 
-                // Time Filter Logic
+                // Filtru temporal
                 const statTimeframe = ref('Month');
                 const timeOffset = ref(0);
                 const selectedMonth = ref(currentMonthStr);
@@ -1065,12 +1333,40 @@
                     setTimeout(() => { toastMessage.value = ''; }, 3500);
                 };
 
+                // Rotunjire sigură pentru monedă
+                const toMoney = (num) => Math.round(((parseFloat(num) || 0) + Number.EPSILON) * 100) / 100;
+
+                // Integrare Clipboard Modern
+                const copyTextToClipboard = async (text) => {
+                    try {
+                        if (navigator.clipboard && window.isSecureContext) {
+                            await navigator.clipboard.writeText(text);
+                        } else {
+                            const textarea = document.createElement('textarea');
+                            textarea.value = text;
+                            textarea.style.position = 'fixed';
+                            textarea.style.left = '-9999px';
+                            textarea.style.top = '-9999px';
+                            document.body.appendChild(textarea);
+                            textarea.focus();
+                            textarea.select();
+                            const successful = document.execCommand('copy');
+                            document.body.removeChild(textarea);
+                            if (!successful) throw new Error('Copiere eșuată');
+                        }
+                        showToast('📋 Copiat pentru WhatsApp!');
+                    } catch (err) {
+                        console.error('Eroare la copiere:', err);
+                        showToast('❌ Eroare la copiere');
+                    }
+                };
+
                 const formatDisplayDateSafe = (dateStr) => {
                     if (!dateStr) return '';
                     const parts = dateStr.split('-');
                     if (parts.length !== 3) return dateStr;
                     const logD = new Date(parts[0], parts[1] - 1, parts[2], 12, 0, 0);
-                    return logD.toLocaleDateString('en-US', {weekday: 'short', month: 'short', day: 'numeric'});
+                    return logD.toLocaleDateString('ro-RO', { weekday: 'short', month: 'short', day: 'numeric' });
                 };
 
                 const getWeekDates = () => {
@@ -1080,6 +1376,7 @@
                     const targetMonday = new Date(now);
                     targetMonday.setDate(now.getDate() + daysToMonday + (timeOffset.value * 7));
                     
+                    const dayNames = ['Dum', 'Lun', 'Mar', 'Mie', 'Joi', 'Vin', 'Sâm'];
                     const list = [];
                     for (let i = 0; i < 7; i++) {
                         const day = new Date(targetMonday);
@@ -1087,7 +1384,7 @@
                         const dateStr = `${day.getFullYear()}-${String(day.getMonth() + 1).padStart(2, '0')}-${String(day.getDate()).padStart(2, '0')}`;
                         list.push({
                             dateStr,
-                            dayName: day.toLocaleDateString('en-US', { weekday: 'short' }),
+                            dayName: dayNames[day.getDay()],
                             dayNum: day.getDate()
                         });
                     }
@@ -1112,24 +1409,28 @@
                 });
 
                 const formatMonth = (val) => {
-                    if(!val) return 'MONTH';
+                    if(!val) return 'LUNĂ';
                     const [year, month] = val.split('-');
                     const date = new Date(year, month - 1);
-                    return date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' }).toUpperCase();
+                    return date.toLocaleDateString('ro-RO', { month: 'short', year: 'numeric' }).toUpperCase();
                 };
 
-                onMounted(async () => {
-                    onAuthStateChanged(auth, (u) => {
-                        user.value = u;
-                        if(u) startSync();
-                        else {
-                            loading.value = false;
+                // Curățare ascultători Firestore
+                let activeUnsubs = [];
+
+                const stopSync = () => {
+                    activeUnsubs.forEach(unsub => {
+                        if (typeof unsub === 'function') {
+                            try { unsub(); } catch (e) { console.warn('Eroare unsubscribe:', e); }
                         }
                     });
-                });
+                    activeUnsubs = [];
+                };
 
                 const startSync = () => {
-                    fsOnSnapshot(fsCollection(db, 'artifacts', appId, 'public', 'data', 'sites'), (snap) => {
+                    stopSync();
+
+                    const unsubSites = fsOnSnapshot(fsCollection(db, 'artifacts', appId, 'public', 'data', 'sites'), (snap) => {
                         sites.value = snap.docs.map(d => ({ id: d.id, ...d.data() }));
                         sites.value.forEach(s => { 
                             if(!priceForm[s.id]) {
@@ -1138,36 +1439,56 @@
                         });
                         loading.value = false;
                     }, (err) => {
-                        console.warn("Firestore site snapshot failed:", err);
+                        console.warn("Eroare snapshot șantiere:", err);
                         loading.value = false;
                     });
+                    activeUnsubs.push(unsubSites);
 
-                    fsOnSnapshot(fsCollection(db, 'artifacts', appId, 'public', 'data', 'employees'), (snap) => {
+                    const unsubEmployees = fsOnSnapshot(fsCollection(db, 'artifacts', appId, 'public', 'data', 'employees'), (snap) => {
                         employees.value = snap.docs.map(d => ({ id: d.id, ...d.data() }));
                         employees.value.forEach(e => {
                             if (e.email) empEmails[e.id] = e.email;
                             if (empRates[e.id] === undefined) empRates[e.id] = parseFloat(e.rate) || 0;
                         });
-                        // Inițializează selectia de muncitor in decont daca e goala
                         if (!settleForm.eid && employees.value.length > 0) {
                             settleForm.eid = employees.value[0].id;
                             settleForm.rate = parseFloat(employees.value[0].rate) || 0;
                         }
-                    }, (err) => console.warn("Firestore employees snapshot failed:", err));
+                    }, (err) => console.warn("Eroare snapshot muncitori:", err));
+                    activeUnsubs.push(unsubEmployees);
 
-                    fsOnSnapshot(fsCollection(db, 'artifacts', appId, 'public', 'data', 'logs'), (snap) => {
+                    const unsubLogs = fsOnSnapshot(fsCollection(db, 'artifacts', appId, 'public', 'data', 'logs'), (snap) => {
                         logs.value = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-                    }, (err) => console.warn("Firestore logs snapshot failed:", err));
+                    }, (err) => console.warn("Eroare snapshot pontaje:", err));
+                    activeUnsubs.push(unsubLogs);
 
-                    fsOnSnapshot(fsCollection(db, 'artifacts', appId, 'public', 'data', 'payroll_status'), (snap) => {
+                    const unsubPayroll = fsOnSnapshot(fsCollection(db, 'artifacts', appId, 'public', 'data', 'payroll_status'), (snap) => {
                         payrollStatus.value = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-                    }, (err) => console.warn("Firestore payroll snapshot failed:", err));
+                    }, (err) => console.warn("Eroare snapshot salarii:", err));
+                    activeUnsubs.push(unsubPayroll);
 
-                    // Sincronizare Firestore pentru Deconturi & Minusuri (Cloud Storage)
-                    fsOnSnapshot(fsCollection(db, 'artifacts', appId, 'public', 'data', 'settlements'), (snap) => {
+                    const unsubSettlements = fsOnSnapshot(fsCollection(db, 'artifacts', appId, 'public', 'data', 'settlements'), (snap) => {
                         settlements.value = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-                    }, (err) => console.warn("Firestore settlements snapshot failed:", err));
+                    }, (err) => console.warn("Eroare snapshot deconturi:", err));
+                    activeUnsubs.push(unsubSettlements);
                 };
+
+                onMounted(async () => {
+                    onAuthStateChanged(auth, (u) => {
+                        user.value = u;
+                        if(u) {
+                            startSync();
+                        } else {
+                            stopSync();
+                            sites.value = [];
+                            employees.value = [];
+                            logs.value = [];
+                            settlements.value = [];
+                            payrollStatus.value = [];
+                            loading.value = false;
+                        }
+                    });
+                });
 
                 const handleLogin = async () => {
                     authLoading.value = true;
@@ -1175,17 +1496,21 @@
                     try { 
                         await signInWithEmailAndPassword(auth, authForm.email, authForm.pass); 
                     } catch (e) { 
-                        authError.value = 'Invalid Login Credentials'; 
+                        authError.value = 'Date de conectare incorecte'; 
                     } finally { 
                         authLoading.value = false; 
                     }
                 };
 
-                const handleLogout = () => signOut(auth);
+                const handleLogout = async () => {
+                    stopSync();
+                    await signOut(auth);
+                };
 
                 const currentUserEmployee = computed(() => {
                     if (!user.value || !user.value.email) return null;
-                    return employees.value.find(e => e.email && e.email.toLowerCase() === user.value.email.toLowerCase());
+                    const uEmail = user.value.email.toLowerCase().trim();
+                    return employees.value.find(e => e.email && e.email.toLowerCase().trim() === uEmail);
                 });
 
                 const isAdmin = computed(() => !currentUserEmployee.value);
@@ -1247,7 +1572,6 @@
                     showToast('🗑️ Înregistrare ștearsă');
                 };
 
-                // --- CALCULATOR DECONT & MINUSURI LOGIC ---
                 const onSettleEmpChange = () => {
                     const emp = employees.value.find(e => e.id === settleForm.eid);
                     if (emp) {
@@ -1255,7 +1579,6 @@
                     }
                 };
 
-                // Preluare automată ore din pontaj pe luna selectată
                 const settleAutoHours = computed(() => {
                     if (!settleForm.eid || !settleForm.month) return 0;
                     return logs.value
@@ -1269,18 +1592,19 @@
                 const settleGross = computed(() => {
                     const h = parseFloat(settleForm.hours) || 0;
                     const r = parseFloat(settleForm.rate) || 0;
-                    return h * r;
+                    return toMoney(h * r);
                 });
 
                 const settleTotalDeductions = computed(() => {
-                    return settleForm.deductions.reduce((acc, curr) => {
+                    const total = settleForm.deductions.reduce((acc, curr) => {
                         const val = parseFloat(curr.amount) || 0;
                         return acc + val;
                     }, 0);
+                    return toMoney(total);
                 });
 
                 const settleNet = computed(() => {
-                    return settleGross.value - settleTotalDeductions.value;
+                    return toMoney(settleGross.value - settleTotalDeductions.value);
                 });
 
                 const addSettleDeduction = (reason = '') => {
@@ -1295,19 +1619,42 @@
                     settleForm.deductions = settleForm.deductions.filter(d => d.id !== id);
                 };
 
+                const existingSettlementForSelection = computed(() => {
+                    if (!settleForm.eid || !settleForm.month) return null;
+                    return settlements.value.find(s => s.eid === settleForm.eid && s.month === settleForm.month);
+                });
+
+                const loadExistingSettlement = (item) => {
+                    if (!item) return;
+                    settleForm.month = item.month || settleForm.month;
+                    settleForm.eid = item.eid || settleForm.eid;
+                    settleForm.hours = item.hours || 0;
+                    settleForm.rate = item.rate || 0;
+                    settleForm.status = item.status || 'approved';
+                    settleForm.paymentMethod = item.paymentMethod || 'cash';
+                    if (Array.isArray(item.deductions) && item.deductions.length > 0) {
+                        settleForm.deductions = item.deductions.map(d => ({
+                            id: d.id || ('ded_' + Math.random()),
+                            reason: d.reason,
+                            amount: d.amount
+                        }));
+                    }
+                    showToast('📥 Decont încărcat în calculator!');
+                };
+
                 const saveSettlementToCloud = async () => {
                     if (!user.value || !isAdmin.value || !settleForm.eid) return;
                     loading.value = true;
                     
                     const cleanDeductions = settleForm.deductions
                         .filter(d => (parseFloat(d.amount) || 0) > 0)
-                        .map(d => ({ id: d.id, reason: d.reason, amount: parseFloat(d.amount) }));
+                        .map(d => ({ id: d.id, reason: d.reason, amount: toMoney(d.amount) }));
 
                     const emp = employees.value.find(e => e.id === settleForm.eid);
 
                     const record = {
                         eid: settleForm.eid,
-                        workerName: emp?.name || 'Worker',
+                        workerName: emp?.name || 'Muncitor',
                         month: settleForm.month,
                         hours: parseFloat(settleForm.hours) || 0,
                         rate: parseFloat(settleForm.rate) || 0,
@@ -1315,17 +1662,38 @@
                         deductions: cleanDeductions,
                         totalDeductions: settleTotalDeductions.value,
                         net: settleNet.value,
-                        createdAt: Date.now()
+                        status: settleForm.status || 'approved',
+                        paymentMethod: settleForm.paymentMethod || 'cash',
+                        updatedAt: Date.now()
                     };
 
                     try {
-                        await fsAddDoc(fsCollection(db, 'artifacts', appId, 'public', 'data', 'settlements'), record);
-                        showToast(`💾 Decont salvat pentru ${record.workerName}!`);
+                        if (existingSettlementForSelection.value) {
+                            await fsUpdateDoc(fsDoc(db, 'artifacts', appId, 'public', 'data', 'settlements', existingSettlementForSelection.value.id), record);
+                            showToast(`🔄 Decont actualizat pentru ${record.workerName}!`);
+                        } else {
+                            record.createdAt = Date.now();
+                            await fsAddDoc(fsCollection(db, 'artifacts', appId, 'public', 'data', 'settlements'), record);
+                            showToast(`💾 Decont salvat pentru ${record.workerName}!`);
+                        }
                         settleSubTab.value = 'archive';
                     } catch (e) {
-                        console.error("Save settlement error:", e);
+                        console.error("Eroare la salvare decont:", e);
                     } finally {
                         loading.value = false;
+                    }
+                };
+
+                const updateSettlementStatus = async (id, newStatus) => {
+                    if (!user.value || !isAdmin.value) return;
+                    try {
+                        await fsUpdateDoc(fsDoc(db, 'artifacts', appId, 'public', 'data', 'settlements', id), {
+                            status: newStatus
+                        });
+                        const statusLabel = newStatus === 'paid' ? 'PLĂTIT' : newStatus === 'approved' ? 'APROBAT' : 'SCHIȚĂ';
+                        showToast(`Stare: ${statusLabel}`);
+                    } catch (e) {
+                        console.error(e);
                     }
                 };
 
@@ -1340,8 +1708,12 @@
                     const empName = emp ? emp.name.toUpperCase() : 'MUNCITOR';
                     const validDeductions = settleForm.deductions.filter(d => (parseFloat(d.amount) || 0) > 0);
 
+                    const statusName = settleForm.status === 'paid' ? 'PLĂTIT' : settleForm.status === 'approved' ? 'APROBAT' : 'SCHIȚĂ';
+                    const payMethod = settleForm.paymentMethod === 'bank' ? 'Transfer Bancar' : 'Numerar / Cash';
+
                     let msg = `📋 *DECONT SALARIU - ${empName}*\n`;
                     msg += `🗓️ *Luna:* ${formatMonth(settleForm.month)}\n`;
+                    msg += `📌 *Stare:* ${statusName} (${payMethod})\n`;
                     msg += `━━━━━━━━━━━━━━━━━━━━━\n`;
                     msg += `⏱️ *Ore lucrate:* ${settleForm.hours || 0} ore × €${settleForm.rate || 0}/h = *€${settleGross.value.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}*\n\n`;
 
@@ -1357,23 +1729,17 @@
 
                     msg += `💰 *REST DE DAT (NET): €${settleNet.value.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}*`;
 
-                    const textarea = document.createElement('textarea');
-                    textarea.value = msg;
-                    document.body.appendChild(textarea);
-                    textarea.select();
-                    try {
-                        document.execCommand('copy');
-                        showToast('📋 Copiat pentru WhatsApp!');
-                    } catch (e) {
-                        showToast('❌ Eroare la copiere');
-                    }
-                    document.body.removeChild(textarea);
+                    copyTextToClipboard(msg);
                 };
 
                 const copySpecificSettlement = (item) => {
                     const empName = (item.workerName || getEmpName(item.eid)).toUpperCase();
+                    const statusName = item.status === 'paid' ? 'PLĂTIT' : item.status === 'approved' ? 'APROBAT' : 'SCHIȚĂ';
+                    const payMethod = item.paymentMethod === 'bank' ? 'Transfer Bancar' : 'Numerar / Cash';
+
                     let msg = `📋 *DECONT SALARIU - ${empName}*\n`;
                     msg += `🗓️ *Luna:* ${formatMonth(item.month)}\n`;
+                    msg += `📌 *Stare:* ${statusName} (${payMethod})\n`;
                     msg += `━━━━━━━━━━━━━━━━━━━━━\n`;
                     msg += `⏱️ *Ore lucrate:* ${item.hours} ore × €${item.rate}/h = *€${(item.gross || 0).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}*\n\n`;
 
@@ -1387,24 +1753,106 @@
 
                     msg += `💰 *REST DE DAT (NET): €${(item.net || 0).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}*`;
 
-                    const textarea = document.createElement('textarea');
-                    textarea.value = msg;
-                    document.body.appendChild(textarea);
-                    textarea.select();
-                    try {
-                        document.execCommand('copy');
-                        showToast('📋 Copiat pentru WhatsApp!');
-                    } catch (e) {
-                        showToast('❌ Eroare la copiere');
-                    }
-                    document.body.removeChild(textarea);
+                    copyTextToClipboard(msg);
                 };
 
                 const sortedSettlements = computed(() => {
                     return [...settlements.value].sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
                 });
 
-                // Worker settlement info
+                const filteredSettlements = computed(() => {
+                    return sortedSettlements.value.filter(s => {
+                        const matchWorker = !settleArchiveFilterEid.value || s.eid === settleArchiveFilterEid.value;
+                        const matchStatus = !settleArchiveFilterStatus.value || (s.status || 'approved') === settleArchiveFilterStatus.value;
+                        return matchWorker && matchStatus;
+                    });
+                });
+
+                const openEditLog = (log) => {
+                    editingLog.value = { 
+                        id: log.id,
+                        date: log.date,
+                        h: parseFloat(log.h) || 0,
+                        eid: log.eid,
+                        sid: log.sid
+                    };
+                };
+
+                const cancelEditLog = () => {
+                    editingLog.value = null;
+                };
+
+                const saveEditLog = async () => {
+                    if (!editingLog.value || !user.value || !isAdmin.value) return;
+                    loading.value = true;
+                    try {
+                        const { id, date, h, eid, sid } = editingLog.value;
+                        await fsUpdateDoc(fsDoc(db, 'artifacts', appId, 'public', 'data', 'logs', id), {
+                            date,
+                            h: parseFloat(h) || 0,
+                            eid,
+                            sid
+                        });
+                        editingLog.value = null;
+                        showToast('✅ Pontaj actualizat!');
+                    } catch (e) {
+                        console.error(e);
+                        showToast('❌ Eroare la actualizare');
+                    } finally {
+                        loading.value = false;
+                    }
+                };
+
+                // Funcții editare articol deviz / lucrare șantier
+                const openEditSiteItem = (siteId, item) => {
+                    editingSiteItem.value = {
+                        siteId,
+                        id: item.id,
+                        desc: item.desc,
+                        qty: item.qty,
+                        unit: item.unit || 'm2',
+                        price: item.price
+                    };
+                };
+
+                const cancelEditSiteItem = () => {
+                    editingSiteItem.value = null;
+                };
+
+                const saveEditSiteItem = async () => {
+                    if (!editingSiteItem.value || !user.value || !isAdmin.value) return;
+                    loading.value = true;
+                    try {
+                        const { siteId, id, desc, qty, unit, price } = editingSiteItem.value;
+                        const s = sites.value.find(x => x.id === siteId);
+                        if (!s) return;
+
+                        const items = (s.pricingItems || []).map(i => {
+                            if (i.id === id) {
+                                return {
+                                    ...i,
+                                    desc: (desc || '').trim(),
+                                    qty: parseFloat(qty) || 0,
+                                    unit: (unit || '').trim() || 'm2',
+                                    price: parseFloat(price) || 0
+                                };
+                            }
+                            return i;
+                        });
+
+                        await fsUpdateDoc(fsDoc(db, 'artifacts', appId, 'public', 'data', 'sites', siteId), { 
+                            pricingItems: items 
+                        });
+                        editingSiteItem.value = null;
+                        showToast('✅ Lucrare actualizată cu succes!');
+                    } catch (e) {
+                        console.error('Eroare actualizare lucrare:', e);
+                        showToast('❌ Eroare la actualizarea lucrării');
+                    } finally {
+                        loading.value = false;
+                    }
+                };
+
                 const myLatestSettlement = computed(() => {
                     if (isAdmin.value || !currentUserEmployee.value) return null;
                     const myEid = currentUserEmployee.value.id;
@@ -1413,32 +1861,34 @@
                         .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0))[0] || null;
                 });
 
-                // Milestone Helper - total contract value of the site
                 const calculateSiteTotal = (sid) => {
-                    return (sites.value.find(x => x.id === sid)?.pricingItems || []).reduce((a, b) => {
+                    const total = (sites.value.find(x => x.id === sid)?.pricingItems || []).reduce((a, b) => {
                         return a + ((parseFloat(b.qty)||0) * (parseFloat(b.price)||0));
                     }, 0);
+                    return toMoney(total);
                 };
 
                 const calculateSitePaid = (sid) => {
                     const s = sites.value.find(x => x.id === sid);
                     if (!s) return 0;
                     if (s.isPaid) return calculateSiteTotal(sid);
-                    return (s.pricingItems || []).reduce((a, b) => {
+                    const total = (s.pricingItems || []).reduce((a, b) => {
                         const pct = parseFloat(b.paidPercent) || 0;
                         const value = (parseFloat(b.qty)||0) * (parseFloat(b.price)||0);
                         return a + (value * (pct / 100));
                     }, 0);
+                    return toMoney(total);
                 };
 
                 const calculateSiteOwed = (sid) => {
                     const s = sites.value.find(x => x.id === sid);
                     if (!s || s.isPaid) return 0;
-                    return (s.pricingItems || []).reduce((a, b) => {
+                    const total = (s.pricingItems || []).reduce((a, b) => {
                         const pct = parseFloat(b.paidPercent) || 0;
                         const value = (parseFloat(b.qty)||0) * (parseFloat(b.price)||0);
                         return a + (value * (1 - (pct / 100)));
                     }, 0);
+                    return toMoney(total);
                 };
 
                 const getAllTimeSiteHours = (sid) => logs.value.filter(l => l.sid === sid).reduce((a, b) => a + (parseFloat(b.h)||0), 0);
@@ -1462,6 +1912,7 @@
                     const s = sites.value.find(x => x.id === sid);
                     const items = s.pricingItems.filter(i => i.id !== iid);
                     await fsUpdateDoc(fsDoc(db, 'artifacts', appId, 'public', 'data', 'sites', sid), { pricingItems: items });
+                    showToast('🗑️ Lucrare ștearsă din deviz');
                 };
 
                 const updateItemPaymentPercent = async (sid, iid, percent) => {
@@ -1477,10 +1928,35 @@
                     await fsUpdateDoc(fsDoc(db, 'artifacts', appId, 'public', 'data', 'sites', sid), { pricingItems: items });
                 };
 
-                const togglePaid = async (sid) => {
-                    if (!user.value || !isAdmin.value) return;
+                // Cerere și confirmare finalizare / redeschidere șantier
+                const requestTogglePaid = (site) => {
+                    confirmingFinishSite.value = site;
+                };
+
+                const cancelTogglePaid = () => {
+                    confirmingFinishSite.value = null;
+                };
+
+                const confirmTogglePaid = async () => {
+                    if (!user.value || !isAdmin.value || !confirmingFinishSite.value) return;
+                    const targetSite = confirmingFinishSite.value;
+                    const nextPaidState = !targetSite.isPaid;
+                    try {
+                        await fsUpdateDoc(fsDoc(db, 'artifacts', appId, 'public', 'data', 'sites', targetSite.id), { 
+                            isPaid: nextPaidState 
+                        });
+                        showToast(nextPaidState ? '🟢 Șantier marcat ca finalizat!' : '🟡 Șantier redeschis');
+                    } catch (e) {
+                        console.error('Eroare actualizare șantier:', e);
+                        showToast('❌ Eroare la actualizarea șantierului');
+                    } finally {
+                        confirmingFinishSite.value = null;
+                    }
+                };
+
+                const togglePaid = (sid) => {
                     const s = sites.value.find(x => x.id === sid);
-                    await fsUpdateDoc(fsDoc(db, 'artifacts', appId, 'public', 'data', 'sites', sid), { isPaid: !s.isPaid });
+                    if (s) requestTogglePaid(s);
                 };
 
                 const addSite = async () => { 
@@ -1500,7 +1976,7 @@
                     if (!user.value || !isAdmin.value || !news.value.emp) return; 
                     await fsAddDoc(fsCollection(db, 'artifacts', appId, 'public', 'data', 'employees'), { 
                         name: news.value.emp.trim(),
-                        email: news.value.empEmail ? news.value.empEmail.trim() : '',
+                        email: news.value.empEmail ? news.value.empEmail.trim().toLowerCase() : '',
                         rate: parseFloat(news.value.empRate) || 0,
                         isArchived: false
                     }); 
@@ -1513,7 +1989,7 @@
                 const linkEmpEmail = async (id) => {
                     if (!user.value || !isAdmin.value || !empEmails[id]) return;
                     await fsUpdateDoc(fsDoc(db, 'artifacts', appId, 'public', 'data', 'employees', id), { 
-                        email: empEmails[id].trim() 
+                        email: empEmails[id].trim().toLowerCase() 
                     });
                 };
 
@@ -1608,11 +2084,11 @@
                     if (statTimeframe.value === 'Month') {
                         const now = new Date();
                         const d = new Date(now.getFullYear(), now.getMonth() + timeOffset.value, 1);
-                        return d.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+                        return d.toLocaleDateString('ro-RO', { month: 'long', year: 'numeric' });
                     }
                     if (statTimeframe.value === 'Week') {
-                        if (timeOffset.value === 0) return 'This Week';
-                        if (timeOffset.value === -1) return 'Last Week';
+                        if (timeOffset.value === 0) return 'Săptămâna Aceasta';
+                        if (timeOffset.value === -1) return 'Săptămâna Trecută';
                         
                         const now = new Date();
                         const dayOfWeek = now.getDay();
@@ -1624,7 +2100,7 @@
                         const targetSunday = new Date(targetMonday);
                         targetSunday.setDate(targetMonday.getDate() + 6);
                         
-                        const format = (date) => date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                        const format = (date) => date.toLocaleDateString('ro-RO', { month: 'short', day: 'numeric' });
                         return `${format(targetMonday)} - ${format(targetSunday)}`;
                     }
                     return '';
@@ -1639,7 +2115,7 @@
                     myLogs.forEach(l => { siteMap[l.sid] = (siteMap[l.sid] || 0) + (parseFloat(l.h)||0); });
                     
                     return Object.keys(siteMap).map(sid => ({
-                        siteName: sites.value.find(s => s.id === sid)?.name || 'Unknown Site',
+                        siteName: sites.value.find(s => s.id === sid)?.name || 'Șantier Necunoscut',
                         hours: siteMap[sid]
                     }));
                 });
@@ -1707,12 +2183,33 @@
                     settleSubTab, settleForm, deductionPresets, settleAutoHours, settleGross, settleTotalDeductions, settleNet,
                     addSettleDeduction, removeSettleDeduction, saveSettlementToCloud, deleteSettlement, copyWhatsAppSettlement,
                     copySpecificSettlement, onSettleEmpChange, settlements, sortedSettlements, myLatestSettlement,
+                    existingSettlementForSelection, loadExistingSettlement, updateSettlementStatus,
+                    settleArchiveFilterEid, settleArchiveFilterStatus, filteredSettlements,
+
+                    // Confirmare Finalizare Șantier
+                    confirmingFinishSite, requestTogglePaid, confirmTogglePaid, cancelTogglePaid,
+
+                    // Modificare / Editare Lucrări Șantier (Articole Deviz)
+                    editingSiteItem, openEditSiteItem, cancelEditSiteItem, saveEditSiteItem,
+
+                    // Editare Pontaj & Limitare Paginare
+                    editingLog, openEditLog, cancelEditLog, saveEditLog, historyPageLimit,
+                    visibleLogs: computed(() => {
+                        return logs.value
+                            .filter(l => {
+                                const matchEmp = !historyFilters.eid || l.eid === historyFilters.eid;
+                                const matchSite = !historyFilters.sid || l.sid === historyFilters.sid;
+                                return matchEmp && matchSite;
+                            })
+                            .sort((a,b) => new Date(b.date) - new Date(a.date))
+                            .slice(0, historyPageLimit.value);
+                    }),
 
                     statsEmpHours: computed(() => {
                         const res = {};
                         logs.value.filter(l => isDateInTimeframe(l.date)).forEach(l => {
                             const emp = employees.value.find(e => e.id === l.eid);
-                            const n = emp?.name || 'Worker';
+                            const n = emp?.name || 'Muncitor';
                             if(!res[n]) res[n] = { hours: 0, rate: emp?.rate || 0 };
                             res[n].hours += (parseFloat(l.h) || 0);
                         });
@@ -1763,12 +2260,14 @@
                             return true;
                         });
 
-                        const counts = { Mon: 0, Tue: 0, Wed: 0, Thu: 0, Fri: 0, Sat: 0, Sun: 0 };
+                        const dayMap = ['Dum', 'Lun', 'Mar', 'Mie', 'Joi', 'Vin', 'Sâm'];
+                        const counts = { 'Lun': 0, 'Mar': 0, 'Mie': 0, 'Joi': 0, 'Vin': 0, 'Sâm': 0, 'Dum': 0 };
+                        
                         relevantLogs.forEach(l => {
                             const parts = l.date.split('-');
                             if (parts.length === 3) {
                                 const date = new Date(parts[0], parts[1]-1, parts[2], 12, 0, 0);
-                                const dayName = date.toLocaleDateString('en-US', { weekday: 'short' });
+                                const dayName = dayMap[date.getDay()];
                                 if (counts[dayName] !== undefined) {
                                     counts[dayName] += (parseFloat(l.h) || 0);
                                 }
@@ -1802,7 +2301,12 @@
                             laborCost += ((parseFloat(l.h) || 0) * (parseFloat(emp?.rate) || 0));
                         });
 
-                        return { paid, unpaid, laborCost, profit: (paid + unpaid) - laborCost };
+                        return { 
+                            paid: toMoney(paid), 
+                            unpaid: toMoney(unpaid), 
+                            laborCost: toMoney(laborCost), 
+                            profit: toMoney((paid + unpaid) - laborCost) 
+                        };
                     }),
 
                     filteredLogs: computed(() => {
