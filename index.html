@@ -1057,33 +1057,106 @@
                                 </p>
                             </div>
 
-                            <!-- Card Fișă Decont Muncitor (Dacă există pentru muncitorul conectat) -->
-                            <div v-if="myLatestSettlement" class="glass-panel p-6 rounded-[2.5rem] shadow-xl border-brand-indigo/30 space-y-3">
-                                <div class="flex justify-between items-center">
-                                    <span class="text-[9px] font-black uppercase text-brand-indigo tracking-widest">Fișă Decont & Salariu ({{ formatMonth(myLatestSettlement.month) }})</span>
-                                    <span class="text-[8px] bg-brand-emerald/10 text-brand-emerald font-black px-2 py-0.5 rounded-full">Calculat</span>
+                            <!-- Card Fișă Decont & Plată pentru Luna Selectată (Dacă există înregistrare) -->
+                            <div v-if="myCurrentTimeframeSettlement" class="glass-panel p-6 rounded-[2.5rem] shadow-xl border-brand-indigo/30 space-y-3.5 relative overflow-hidden">
+                                <div class="absolute -top-10 -right-10 w-24 h-24 bg-brand-indigo/10 rounded-full blur-2xl pointer-events-none"></div>
+                                
+                                <div class="flex justify-between items-start flex-wrap gap-2 border-b border-slate-800/60 pb-3">
+                                    <div>
+                                        <div class="flex items-center gap-2">
+                                            <span class="text-xs font-black text-white">Fișă Decont & Plată</span>
+                                            <span class="text-[8.5px] bg-brand-indigo/20 text-brand-indigo px-2.5 py-0.5 rounded-full font-bold uppercase">
+                                                {{ formatMonth(myCurrentTimeframeSettlement.month) }}
+                                            </span>
+                                        </div>
+                                        <span class="text-[8.5px] text-slate-400 font-bold block mt-0.5">
+                                            {{ myCurrentTimeframeSettlement.hours }}h pontate × €{{ myCurrentTimeframeSettlement.rate }}/h
+                                        </span>
+                                    </div>
+
+                                    <div class="flex items-center gap-1.5">
+                                        <span class="text-[8px] font-black uppercase px-2.5 py-1 rounded-xl"
+                                              :class="myCurrentTimeframeSettlement.status === 'paid' ? 'bg-brand-emerald/20 text-brand-emerald border border-brand-emerald/30' : myCurrentTimeframeSettlement.status === 'approved' ? 'bg-brand-indigo/20 text-brand-indigo border border-brand-indigo/30' : 'bg-brand-amber/20 text-brand-amber border border-brand-amber/30'">
+                                            ● {{ myCurrentTimeframeSettlement.status === 'paid' ? 'ACHITAT' : myCurrentTimeframeSettlement.status === 'approved' ? 'APROBAT' : 'SCHIȚĂ' }}
+                                        </span>
+                                        <span class="text-[8px] font-bold text-slate-300 bg-slate-900/80 px-2 py-1 rounded-xl border border-slate-800">
+                                            {{ myCurrentTimeframeSettlement.paymentMethod === 'bank' ? '🏦 Bancă' : '💵 Cash' }}
+                                        </span>
+                                    </div>
                                 </div>
+
                                 <div class="grid grid-cols-2 gap-2 text-xs">
                                     <div class="bg-slate-900/60 p-3 rounded-2xl border border-slate-800">
-                                        <span class="text-[8px] text-slate-400 font-bold uppercase block">Total Brut</span>
-                                        <span class="font-black text-white">€{{ (myLatestSettlement.gross || 0).toLocaleString(undefined, {maximumFractionDigits: 2}) }}</span>
+                                        <span class="text-[8px] text-slate-400 font-bold uppercase block">Venit Brut</span>
+                                        <span class="font-black text-white">€{{ (myCurrentTimeframeSettlement.gross || 0).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2}) }}</span>
                                     </div>
                                     <div class="bg-slate-900/60 p-3 rounded-2xl border border-slate-800">
-                                        <span class="text-[8px] text-brand-rose font-bold uppercase block">Total Minusuri</span>
-                                        <span class="font-black text-brand-rose">-€{{ (myLatestSettlement.totalDeductions || 0).toLocaleString(undefined, {maximumFractionDigits: 2}) }}</span>
+                                        <span class="text-[8px] text-brand-rose font-bold uppercase block">Total Scăderi</span>
+                                        <span class="font-black text-brand-rose">-€{{ (myCurrentTimeframeSettlement.totalDeductions || 0).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2}) }}</span>
                                     </div>
                                 </div>
-                                <!-- Minusuri detaliate pentru muncitor -->
-                                <div v-if="myLatestSettlement.deductions && myLatestSettlement.deductions.length > 0" class="space-y-1 pt-1">
-                                    <span class="text-[8px] text-slate-500 uppercase font-black">Detalii Minusuri / Scăderi:</span>
-                                    <div v-for="(d, i) in myLatestSettlement.deductions" :key="i" class="flex justify-between text-[9px] text-slate-300 bg-slate-950/40 px-2.5 py-1 rounded-xl">
-                                        <span>• {{ d.reason }}</span>
-                                        <span class="text-brand-rose font-bold">-€{{ d.amount }}</span>
+
+                                <!-- Minusuri / scăderi detaliate -->
+                                <div v-if="myCurrentTimeframeSettlement.deductions && myCurrentTimeframeSettlement.deductions.length > 0" class="space-y-1.5 pt-1">
+                                    <span class="text-[8px] text-slate-500 uppercase font-black tracking-wider">Detalii Scăderi Aplicate:</span>
+                                    <div v-for="(d, i) in myCurrentTimeframeSettlement.deductions" :key="i" class="flex justify-between items-center text-[9px] text-slate-300 bg-slate-950/50 px-3 py-1.5 rounded-xl border border-slate-900">
+                                        <span class="font-semibold">• {{ d.reason }}</span>
+                                        <span class="text-brand-rose font-black">-€{{ parseFloat(d.amount).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2}) }}</span>
                                     </div>
                                 </div>
-                                <div class="flex justify-between items-center pt-2 border-t border-slate-800/60">
-                                    <span class="text-[9px] font-black uppercase text-slate-400">Rest de Primit (Net):</span>
-                                    <span class="text-lg font-black text-brand-emerald">€{{ (myLatestSettlement.net || 0).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2}) }}</span>
+
+                                <div class="bg-gradient-to-r from-brand-emerald/15 to-slate-900/80 p-3.5 rounded-2xl border border-brand-emerald/30 flex justify-between items-center">
+                                    <div>
+                                        <span class="text-[8px] font-black uppercase text-brand-emerald tracking-wider block">Rest Net de Primit</span>
+                                        <span class="text-[8px] text-slate-400 font-semibold" v-if="myCurrentTimeframeSettlement.status === 'paid'">
+                                            Plată confirmată prin {{ myCurrentTimeframeSettlement.paymentMethod === 'bank' ? 'transfer bancar' : 'numerar' }}
+                                        </span>
+                                        <span class="text-[8px] text-slate-400 font-semibold" v-else>
+                                            Calcul final pentru {{ formatMonth(myCurrentTimeframeSettlement.month) }}
+                                        </span>
+                                    </div>
+                                    <span class="text-xl font-black text-brand-emerald">
+                                        €{{ (myCurrentTimeframeSettlement.net || 0).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2}) }}
+                                    </span>
+                                </div>
+                            </div>
+
+                            <!-- Notificare dacă nu există decont salvat pentru luna selectată -->
+                            <div v-else-if="statTimeframe === 'Month'" class="glass-panel p-4 rounded-2xl border border-slate-800/40 flex items-center justify-between text-[9.5px]">
+                                <div class="flex items-center gap-2 text-slate-400">
+                                    <span>ℹ️</span>
+                                    <span>Niciun decont înregistrat pentru <strong>{{ formatMonth(selectedMonth) }}</strong>.</span>
+                                </div>
+                                <span class="text-[8px] font-black uppercase text-brand-indigo bg-brand-indigo/10 px-2 py-0.5 rounded-lg">Ore salvate</span>
+                            </div>
+
+                            <!-- Lista tuturor deconturilor când este selectat filtrul TOTAL -->
+                            <div v-if="statTimeframe === 'All' && myAllSettlements.length > 0" class="glass-panel p-5 rounded-3xl space-y-3 border-brand-indigo/20">
+                                <div class="flex justify-between items-center border-b border-slate-800/60 pb-2.5">
+                                    <span class="text-[9px] font-black uppercase text-brand-indigo tracking-widest">Istoric Plăți & Deconturi ({{ myAllSettlements.length }})</span>
+                                    <span class="text-[8px] font-bold text-slate-400 uppercase">Toate Lunile</span>
+                                </div>
+                                <div class="space-y-2 max-h-60 overflow-y-auto pr-1 custom-scrollbar">
+                                    <div v-for="st in myAllSettlements" :key="st.id" class="p-3 bg-slate-900/60 rounded-2xl border border-slate-800/60 flex justify-between items-center">
+                                        <div>
+                                            <div class="flex items-center gap-2">
+                                                <span class="text-xs font-bold text-slate-200">{{ formatMonth(st.month) }}</span>
+                                                <span class="text-[7.5px] font-black uppercase px-2 py-0.5 rounded-md"
+                                                      :class="st.status === 'paid' ? 'bg-brand-emerald/20 text-brand-emerald' : 'bg-brand-indigo/20 text-brand-indigo'">
+                                                    {{ st.status === 'paid' ? 'PLĂTIT' : 'APROBAT' }}
+                                                </span>
+                                            </div>
+                                            <span class="text-[8.5px] text-slate-400 font-semibold mt-0.5 block">
+                                                {{ st.hours }}h • Brut: €{{ (st.gross || 0).toLocaleString(undefined, {maximumFractionDigits: 2}) }}
+                                            </span>
+                                        </div>
+                                        <div class="text-right">
+                                            <span class="text-xs font-black text-brand-emerald block">
+                                                €{{ (st.net || 0).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2}) }}
+                                            </span>
+                                            <span class="text-[8px] text-slate-400">{{ st.paymentMethod === 'bank' ? '🏦 Bancă' : '💵 Cash' }}</span>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
 
@@ -1845,23 +1918,49 @@
                         });
                         editingSiteItem.value = null;
                         showToast('✅ Lucrare actualizată cu succes!');
-                    } catch (e) {
-                        console.error('Eroare actualizare lucrare:', e);
-                        showToast('❌ Eroare la actualizarea lucrării');
-                    } finally {
-                        loading.value = false;
-                    }
-                };
+                } catch (e) {
+                    console.error('Eroare actualizare lucrare:', e);
+                    showToast('❌ Eroare la actualizarea lucrării');
+                } finally {
+                    loading.value = false;
+                }
+            };
 
-                const myLatestSettlement = computed(() => {
-                    if (isAdmin.value || !currentUserEmployee.value) return null;
-                    const myEid = currentUserEmployee.value.id;
-                    return settlements.value
-                        .filter(s => s.eid === myEid)
-                        .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0))[0] || null;
-                });
+            // Preluare plată / decont asociat strict lunii sau perioadei selectate de muncitor
+            const myCurrentTimeframeSettlement = computed(() => {
+                if (isAdmin.value || !currentUserEmployee.value) return null;
+                const myEid = currentUserEmployee.value.id;
+                let targetMonth = '';
+                if (statTimeframe.value === 'Month') {
+                    targetMonth = selectedMonth.value || getSelectedMonthStr.value;
+                } else if (statTimeframe.value === 'Week') {
+                    const dates = getWeekDates();
+                    targetMonth = dates.length > 0 ? dates[0].dateStr.slice(0, 7) : getSelectedMonthStr.value;
+                }
+                if (!targetMonth) return null;
+                return settlements.value
+                    .filter(s => s.eid === myEid && s.month === targetMonth)
+                    .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0))[0] || null;
+            });
 
-                const calculateSiteTotal = (sid) => {
+            // Toate plățile muncitorului ordonate descrescător după lună
+            const myAllSettlements = computed(() => {
+                if (isAdmin.value || !currentUserEmployee.value) return [];
+                const myEid = currentUserEmployee.value.id;
+                return settlements.value
+                    .filter(s => s.eid === myEid)
+                    .sort((a, b) => (b.month || '').localeCompare(a.month || ''));
+            });
+
+            const myLatestSettlement = computed(() => {
+                if (isAdmin.value || !currentUserEmployee.value) return null;
+                const myEid = currentUserEmployee.value.id;
+                return settlements.value
+                    .filter(s => s.eid === myEid)
+                    .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0))[0] || null;
+            });
+
+            const calculateSiteTotal = (sid) => {
                     const total = (sites.value.find(x => x.id === sid)?.pricingItems || []).reduce((a, b) => {
                         return a + ((parseFloat(b.qty)||0) * (parseFloat(b.price)||0));
                     }, 0);
@@ -2176,6 +2275,7 @@
                     calculateSiteTotal, calculateSitePaid, calculateSiteOwed, getSiteHours, getSiteHoursPercentage, getTodayHours,
                     getAllTimeSiteHours, calculateSiteYield,
                     mySiteHours, myTotalHours, mySortedLogs,
+                    myCurrentTimeframeSettlement, myAllSettlements, myLatestSettlement,
                     getEmpName, getSiteName,
                     payrollStatus, getSelectedMonthStr, isSelectedMonthPaid, togglePayrollPaid, sortedSites,
                     
