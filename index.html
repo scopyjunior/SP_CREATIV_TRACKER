@@ -11,7 +11,7 @@
     <link rel="manifest" href="manifest.json">
     <link rel="icon" type="image/png" href="icon-192.png">
     <meta name="theme-color" content="#030712">
-    <title>SP CREATIV | Secure Cloud</title>
+    <title>SP CREATIV | Secure Cloud & Payroll</title>
     
     <script>
         // Non-blocking Service Worker registration: wrapped in a try/catch so it can never crash iOS WebKit
@@ -115,6 +115,13 @@
             border-color: #6366f1;
             box-shadow: 0 0 10px rgba(99, 102, 241, 0.25);
         }
+        @keyframes fadeInDown {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-toast {
+            animation: fadeInDown 0.3s ease-out forwards;
+        }
     </style>
 </head>
 <body class="text-slate-100 font-sans select-none antialiased min-h-screen relative overflow-x-hidden">
@@ -126,6 +133,11 @@
     </div>
 
     <div id="app" v-cloak class="flex flex-col min-h-screen">
+
+        <!-- FLOATING TOAST NOTIFICATION -->
+        <div v-if="toastMessage" class="fixed top-4 left-1/2 -translate-x-1/2 z-50 bg-gradient-to-r from-brand-indigo to-brand-violet text-white px-5 py-3 rounded-2xl shadow-2xl text-xs font-black uppercase tracking-wider border border-white/20 animate-toast flex items-center gap-2">
+            <span>{{ toastMessage }}</span>
+        </div>
         
         <!-- LOGIN SCREEN -->
         <div v-if="!user" class="fixed inset-0 bg-slate-950 z-[100] flex items-center justify-center p-6">
@@ -249,6 +261,191 @@
                             </div>
                         </div>
 
+                        <!-- =========================================================================
+                             ADMIN VIEW: DECONT & MINUSURI (NOUL MODUL FINANCIAR DEDICAT)
+                             ========================================================================= -->
+                        <div v-if="view === 'settlement'" class="space-y-4">
+                            
+                            <!-- Sub-tabs: Calculator Decont vs. Arhivă Deconturi -->
+                            <div class="flex p-1 bg-slate-900/80 border border-slate-800/80 rounded-2xl shadow-lg items-center">
+                                <button @click="settleSubTab = 'calc'" :class="settleSubTab === 'calc' ? 'bg-gradient-to-r from-brand-indigo to-brand-violet text-white shadow' : 'text-slate-400'" class="flex-1 py-2.5 text-[10px] font-black uppercase rounded-xl transition-all">
+                                    💰 Calculator & Minusuri
+                                </button>
+                                <button @click="settleSubTab = 'archive'" :class="settleSubTab === 'archive' ? 'bg-gradient-to-r from-brand-indigo to-brand-violet text-white shadow' : 'text-slate-400'" class="flex-1 py-2.5 text-[10px] font-black uppercase rounded-xl transition-all">
+                                    📚 Istoric Salvat ({{ settlements.length }})
+                                </button>
+                            </div>
+
+                            <!-- 1. FORMULAR CALCULATOR DECONT -->
+                            <div v-if="settleSubTab === 'calc'" class="glass-panel p-6 rounded-[2.5rem] shadow-xl relative overflow-hidden space-y-5">
+                                <div class="absolute -top-12 -right-12 w-28 h-28 bg-brand-indigo/15 rounded-full blur-2xl pointer-events-none"></div>
+                                
+                                <div class="flex justify-between items-center border-b border-slate-800/60 pb-3">
+                                    <div>
+                                        <h3 class="text-xs font-black uppercase text-slate-300 tracking-widest">Decont Salariu & Minusuri</h3>
+                                        <p class="text-[9px] text-slate-500 font-bold uppercase tracking-wider mt-0.5">Ore × Tarif − Scăderi = Rest de Dat</p>
+                                    </div>
+                                    <input type="month" v-model="settleForm.month" class="glass-input rounded-xl px-3 py-1.5 text-xs font-black text-brand-indigo outline-none">
+                                </div>
+
+                                <!-- Pas 1: Selectare Muncitor -->
+                                <div class="space-y-1.5">
+                                    <label class="text-[9px] font-black text-slate-400 uppercase tracking-widest">1. Selectează Muncitorul</label>
+                                    <div class="relative">
+                                        <select v-model="settleForm.eid" @change="onSettleEmpChange" class="w-full glass-input rounded-2xl p-4 border-0 font-bold text-xs outline-none appearance-none text-white transition-all">
+                                            <option value="" disabled class="bg-slate-900 text-slate-400">Selectează Muncitor...</option>
+                                            <option v-for="e in activeEmployees" :key="e.id" :value="e.id" class="bg-slate-900 text-slate-100">
+                                                {{e.name}} (Tarif: €{{e.rate || 0}}/h)
+                                            </option>
+                                        </select>
+                                        <div class="absolute inset-y-0 right-0 flex items-center pr-4 pointer-events-none text-slate-400">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7"></path></svg>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Pas 2: Ore Lucrate & Tarif -->
+                                <div class="space-y-1.5">
+                                    <div class="flex justify-between items-center">
+                                        <label class="text-[9px] font-black text-brand-indigo uppercase tracking-widest">2. Ore & Tarif Orar</label>
+                                        <button v-if="settleAutoHours > 0" @click="settleForm.hours = settleAutoHours" class="text-[8.5px] bg-brand-indigo/10 border border-brand-indigo/30 text-brand-indigo px-2 py-0.5 rounded-lg font-bold hover:bg-brand-indigo/20 transition-all">
+                                            📥 Încarcă {{ settleAutoHours }}h din Pontaj
+                                        </button>
+                                    </div>
+                                    <div class="grid grid-cols-2 gap-3">
+                                        <div class="glass-input p-3.5 rounded-2xl">
+                                            <span class="text-[8px] font-black text-slate-400 uppercase block mb-1">Ore Lucrate</span>
+                                            <input type="number" step="0.5" min="0" v-model.number="settleForm.hours" placeholder="ex: 160" class="w-full bg-transparent text-xl font-black text-white outline-none">
+                                        </div>
+                                        <div class="glass-input p-3.5 rounded-2xl">
+                                            <span class="text-[8px] font-black text-slate-400 uppercase block mb-1">Tarif Orar (€/h)</span>
+                                            <input type="number" step="1" min="0" v-model.number="settleForm.rate" placeholder="ex: 35" class="w-full bg-transparent text-xl font-black text-brand-indigo outline-none">
+                                        </div>
+                                    </div>
+                                    <div class="flex justify-between items-center p-2.5 bg-slate-900/50 rounded-xl border border-slate-800/60 text-[10px]">
+                                        <span class="text-slate-400 font-bold">Venit Brut ({{ settleForm.hours || 0 }}h × €{{ settleForm.rate || 0 }}):</span>
+                                        <span class="font-black text-brand-indigo">€{{ settleGross.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2}) }}</span>
+                                    </div>
+                                </div>
+
+                                <!-- Pas 3: Scăderi / Minusuri -->
+                                <div class="space-y-3 pt-2 border-t border-slate-800/60">
+                                    <div class="flex justify-between items-center">
+                                        <div>
+                                            <label class="text-[9px] font-black text-brand-rose uppercase tracking-widest block">3. Scăderi & Minusuri</label>
+                                            <span class="text-[8px] text-slate-500">Motorină, bonuri de masă, scule, avans</span>
+                                        </div>
+                                        <span class="text-[10px] font-black text-brand-rose bg-brand-rose/10 px-2.5 py-1 rounded-xl border border-brand-rose/20">
+                                            -€{{ settleTotalDeductions.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2}) }}
+                                        </span>
+                                    </div>
+
+                                    <!-- Butoane rapide de adăugare -->
+                                    <div class="flex flex-wrap gap-1.5">
+                                        <button v-for="preset in deductionPresets" :key="preset.label" @click="addSettleDeduction(preset.reason)"
+                                                class="text-[8.5px] bg-slate-900/60 hover:bg-slate-800 border border-slate-800 px-2.5 py-1 rounded-xl font-bold text-slate-300 transition-all active:scale-95">
+                                            + {{ preset.label }}
+                                        </button>
+                                    </div>
+
+                                    <!-- Lista de scăderi -->
+                                    <div class="space-y-2 max-h-52 overflow-y-auto pr-1 custom-scrollbar">
+                                        <div v-for="(item, idx) in settleForm.deductions" :key="item.id" class="flex items-center gap-2 bg-slate-950/60 p-2.5 rounded-2xl border border-slate-800/80">
+                                            <span class="text-[9px] text-slate-600 font-black px-1">{{ idx + 1 }}.</span>
+                                            <input v-model="item.reason" placeholder="Motiv (ex: Motorină dubă)" class="flex-1 bg-transparent text-xs text-slate-200 outline-none font-bold">
+                                            <div class="flex items-center gap-1 bg-slate-900 px-2.5 py-1 rounded-xl border border-brand-rose/30">
+                                                <span class="text-xs text-brand-rose font-black">-€</span>
+                                                <input v-model.number="item.amount" type="number" step="0.5" placeholder="0" class="w-16 bg-transparent text-xs font-black text-brand-rose text-right outline-none">
+                                            </div>
+                                            <button @click="removeSettleDeduction(item.id)" class="text-slate-500 hover:text-brand-rose p-1 text-xs">✕</button>
+                                        </div>
+                                    </div>
+
+                                    <button @click="addSettleDeduction('')" class="w-full py-2 bg-slate-900/40 hover:bg-slate-900 border border-dashed border-slate-800 rounded-xl text-[9px] font-bold uppercase tracking-wider text-slate-400 transition-all">
+                                        + Adaugă alt motiv de scădere
+                                    </button>
+                                </div>
+
+                                <!-- CARD MARE REZULTAT: REST DE PLATĂ -->
+                                <div class="bg-gradient-to-br from-brand-emerald/20 via-slate-900/80 to-slate-950 p-5 rounded-3xl border border-brand-emerald/40 space-y-4">
+                                    <div class="flex justify-between items-start">
+                                        <div>
+                                            <span class="text-[8px] font-black uppercase text-brand-emerald tracking-widest block">REST DE PLATĂ (LICHIDARE)</span>
+                                            <p class="text-2xl font-black text-brand-emerald mt-0.5">
+                                                €{{ settleNet.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2}) }}
+                                            </p>
+                                        </div>
+                                        <span class="text-[8.5px] bg-slate-950/80 text-slate-300 font-mono font-bold px-2.5 py-1 rounded-xl border border-slate-800">
+                                            {{ formatMonth(settleForm.month) }}
+                                        </span>
+                                    </div>
+
+                                    <div class="grid grid-cols-2 gap-2 pt-2">
+                                        <button @click="saveSettlementToCloud" :disabled="!settleForm.eid || settleForm.hours <= 0 || loading"
+                                                class="bg-gradient-to-r from-brand-indigo to-brand-violet disabled:from-slate-800 disabled:to-slate-800 disabled:text-slate-500 text-white font-black py-3.5 rounded-2xl text-[10px] uppercase tracking-wider shadow-lg active:scale-95 transition-all flex items-center justify-center gap-1.5">
+                                            <span>💾</span> {{ loading ? 'SAVING...' : 'SALVEAZĂ' }}
+                                        </button>
+                                        <button @click="copyWhatsAppSettlement"
+                                                class="bg-brand-emerald/20 hover:bg-brand-emerald/30 border border-brand-emerald/40 text-brand-emerald font-black py-3.5 rounded-2xl text-[10px] uppercase tracking-wider active:scale-95 transition-all flex items-center justify-center gap-1.5">
+                                            <span>📋</span> WHATSAPP
+                                        </button>
+                                    </div>
+                                </div>
+
+                            </div>
+
+                            <!-- 2. ARHIVĂ DECONTURI SALVATE -->
+                            <div v-if="settleSubTab === 'archive'" class="space-y-3">
+                                <div class="flex justify-between items-center px-1">
+                                    <h3 class="text-xs font-black uppercase text-slate-400 tracking-widest">Arhivă Deconturi</h3>
+                                    <span class="text-[9px] font-bold text-brand-indigo bg-brand-indigo/10 px-2.5 py-0.5 rounded-full">{{ settlements.length }} Salvate</span>
+                                </div>
+
+                                <div v-for="item in sortedSettlements" :key="item.id" class="glass-panel p-5 rounded-3xl shadow-xl space-y-3 border-slate-800/80">
+                                    <div class="flex justify-between items-start">
+                                        <div>
+                                            <div class="flex items-center gap-2">
+                                                <span class="text-xs font-black text-white">{{ item.workerName || getEmpName(item.eid) }}</span>
+                                                <span class="text-[8px] bg-brand-indigo/20 text-brand-indigo px-2 py-0.5 rounded-full font-bold uppercase">
+                                                    {{ formatMonth(item.month) }}
+                                                </span>
+                                            </div>
+                                            <span class="text-[9px] text-slate-400 font-bold block mt-1">
+                                                {{ item.hours }}h × €{{ item.rate }}/h = €{{ (item.gross || 0).toLocaleString(undefined, {maximumFractionDigits: 2}) }} Brut
+                                            </span>
+                                        </div>
+                                        <div class="text-right">
+                                            <span class="text-xs font-black text-brand-emerald block">
+                                                €{{ (item.net || 0).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2}) }}
+                                            </span>
+                                            <span class="text-[8px] font-extrabold text-slate-500 uppercase">Rest Net</span>
+                                        </div>
+                                    </div>
+
+                                    <!-- Scăderi afișate -->
+                                    <div v-if="item.deductions && item.deductions.length > 0" class="flex flex-wrap gap-1 pt-1 border-t border-slate-850">
+                                        <span v-for="(d, i) in item.deductions" :key="i" class="text-[8px] bg-brand-rose/10 text-brand-rose border border-brand-rose/20 px-2 py-0.5 rounded-lg font-bold">
+                                            {{ d.reason }}: -€{{ d.amount }}
+                                        </span>
+                                    </div>
+
+                                    <div class="flex justify-between items-center pt-2 border-t border-slate-800/60">
+                                        <button @click="copySpecificSettlement(item)" class="text-[8.5px] text-brand-emerald font-black uppercase hover:underline">
+                                            📋 Copiază WhatsApp
+                                        </button>
+                                        <button @click="deleteSettlement(item.id)" class="text-[8.5px] text-brand-rose/60 hover:text-brand-rose font-black uppercase">
+                                            ✕ Șterge
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div v-if="settlements.length === 0" class="text-center py-12 text-slate-500 text-xs font-bold">
+                                    Niciun decont salvat încă.
+                                </div>
+                            </div>
+
+                        </div>
+
                         <!-- ADMIN VIEW: JOBS (Revenue & Partial Payments Upgrades) -->
                         <div v-if="view === 'jobs'" class="space-y-6">
                             <div v-for="site in activeSites" :key="site.id" class="glass-panel rounded-[2.5rem] border border-slate-800/80 overflow-hidden shadow-xl">
@@ -319,7 +516,7 @@
                                         </div>
                                     </div>
 
-                                    <!-- Add pricing item form (Crash proofed) -->
+                                    <!-- Add pricing item form -->
                                     <div v-if="priceForm[site.id]" class="bg-slate-900/30 border border-slate-800/40 p-4 rounded-3xl space-y-2">
                                         <input v-model="priceForm[site.id].desc" placeholder="Work description (e.g. Living Room)" class="w-full glass-input p-3 rounded-xl text-xs font-bold outline-none text-white">
                                         <div class="grid grid-cols-3 gap-2">
@@ -345,7 +542,6 @@
                             <div v-if="statTimeframe !== 'All'" class="flex justify-between items-center bg-slate-900/40 border border-slate-800/40 p-2 rounded-2xl shadow-sm">
                                 <button @click="timeOffset--" class="px-4 py-2 bg-slate-800/80 hover:bg-slate-700 text-slate-300 font-bold active:scale-95 transition-transform text-[9px] uppercase tracking-wider rounded-xl">← Prev</button>
                                 
-                                <!-- Month Picker linked to offset -->
                                 <div class="flex-1 relative flex justify-center items-center h-full group">
                                     <input v-if="statTimeframe === 'Month'" type="month" v-model="selectedMonth" class="absolute inset-0 w-full h-full opacity-0 z-20 cursor-pointer">
                                     <span class="text-[9px] font-black text-brand-indigo uppercase tracking-widest text-center group-hover:text-brand-violet transition-colors">
@@ -366,7 +562,7 @@
                                 </button>
                             </div>
 
-                            <!-- Full Financial Dashboard (Now reflects Milestone Payments) -->
+                            <!-- Full Financial Dashboard -->
                             <div class="glass-panel p-6 rounded-[2.5rem] shadow-xl text-center relative overflow-hidden">
                                 <div class="absolute -top-12 -right-12 w-28 h-28 bg-brand-indigo/10 rounded-full blur-2xl"></div>
                                 <h3 class="text-[9px] font-black text-slate-400 uppercase mb-4 tracking-widest">Financial Overview</h3>
@@ -400,7 +596,6 @@
                                     {{ statTimeframe === 'Week' ? 'Weekly Work Tracker' : 'Weekday Work Trends' }}
                                 </h3>
                                 
-                                <!-- Weekly visual bubbles for 'Week' view -->
                                 <div v-if="statTimeframe === 'Week'" class="grid grid-cols-7 gap-2 text-center">
                                     <div v-for="day in weeklyTrack" :key="day.dateStr" class="flex flex-col items-center">
                                         <span class="text-[9px] font-extrabold text-slate-400 uppercase mb-1.5">{{ day.dayName }}</span>
@@ -412,7 +607,6 @@
                                     </div>
                                 </div>
 
-                                <!-- Weekday bar charts for 'Month' & 'All' views -->
                                 <div v-else class="space-y-2.5">
                                     <div v-for="day in weekdayDistribution" :key="day.day" class="flex items-center gap-3">
                                         <span class="text-[10px] font-black text-slate-400 w-8 uppercase">{{ day.day }}</span>
@@ -437,9 +631,6 @@
                                         <span class="text-brand-indigo font-black text-xs">{{ day.hours }}h</span>
                                     </div>
                                 </div>
-                                <div v-if="dailyBreakdown.length === 0" class="text-center py-4 text-slate-500 text-xs font-semibold">
-                                    No work logged in this period.
-                                </div>
                             </div>
 
                             <!-- Total Hours per Site -->
@@ -450,7 +641,6 @@
                                         <span class="font-bold text-xs text-slate-200">{{ site.name }}</span>
                                         <span class="text-brand-indigo font-black text-[9px] bg-brand-indigo/10 px-2.5 py-1 rounded-full">{{ getSiteHours(site.id) }}h</span>
                                     </div>
-                                    <!-- Progress indicator bar -->
                                     <div class="w-full bg-slate-900 rounded-full h-1.5 overflow-hidden">
                                         <div class="bg-gradient-to-r from-brand-indigo to-brand-violet h-1.5 rounded-full" :style="{ width: getSiteHoursPercentage(site.id) + '%' }"></div>
                                     </div>
@@ -470,9 +660,6 @@
                                         <span class="block text-slate-400 font-bold text-[10px]">€{{ (data.hours * data.rate).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2}) }}</span>
                                     </div>
                                 </div>
-                                <div v-if="Object.keys(statsEmpHours).length === 0" class="text-center py-6 text-slate-500 text-xs font-semibold">
-                                    No logged crew hours for this period.
-                                </div>
                             </div>
                         </div>
 
@@ -480,7 +667,6 @@
                         <div v-if="view === 'history'" class="space-y-3">
                             <h3 class="text-xs font-black uppercase text-slate-400 tracking-widest px-2 mb-2">Logs Archive</h3>
                             
-                            <!-- History Filters -->
                             <div class="flex gap-2 mb-4 overflow-x-auto pb-2 custom-scrollbar">
                                 <select v-model="historyFilters.eid" class="glass-input px-4 py-3 rounded-2xl text-[9px] uppercase tracking-wider font-black outline-none flex-1 text-white">
                                     <option value="" class="bg-slate-900">All Workers</option>
@@ -506,9 +692,6 @@
                                     class="active:scale-95 transition-all">
                                     {{ deletingLogId === log.id ? 'Confirm?' : '✕' }}
                                 </button>
-                            </div>
-                            <div v-if="filteredLogs.length === 0" class="text-center py-12 text-slate-500 text-xs font-bold">
-                                No logs match criteria.
                             </div>
                         </div>
 
@@ -544,7 +727,6 @@
                                             <div class="flex flex-col">
                                                 <div class="flex items-center gap-2 mb-1">
                                                     <span class="font-bold text-xs text-slate-200">{{e.name}}</span>
-                                                    <!-- Editable Rate Input -->
                                                     <div class="flex items-center glass-input rounded-lg px-2 py-0.5">
                                                         <span class="text-[9px] font-black text-slate-400">€</span>
                                                         <input v-model.number="empRates[e.id]" type="number" class="w-8 bg-transparent text-[10px] font-black border-0 outline-none text-center text-white" @blur="updateEmpRate(e.id)">
@@ -552,7 +734,6 @@
                                                     </div>
                                                 </div>
                                             </div>
-                                            <!-- Archive Button -->
                                             <button @click="archiveEmp(e.id)" 
                                                 :class="deletingEmpId === e.id ? 'bg-brand-rose text-white' : 'text-brand-rose/40 bg-brand-rose/10 hover:text-brand-rose'"
                                                 class="text-[9px] font-black uppercase px-2.5 py-1.5 rounded-xl transition-all">
@@ -561,7 +742,6 @@
                                         </div>
 
                                         <div class="border-t border-slate-850 pt-2.5">
-                                            <!-- Email settings -->
                                             <div class="flex flex-col gap-1">
                                                 <label class="text-[8px] font-black uppercase text-slate-500">Linked Login Email</label>
                                                 <div v-if="e.email" class="flex items-center justify-between bg-slate-900/30 p-2 rounded-lg border border-slate-800/50">
@@ -585,19 +765,6 @@
                                             :class="deletingSiteId === s.id ? 'bg-brand-rose text-white' : 'text-brand-rose/40 bg-brand-rose/10 hover:text-brand-rose'"
                                             class="text-[9px] font-black uppercase px-2.5 py-1.5 rounded-xl transition-all">
                                             {{ deletingSiteId === s.id ? 'Confirm?' : 'Archive' }}
-                                        </button>
-                                    </div>
-                                </div>
-
-                                <!-- Payroll Status History Section -->
-                                <div class="space-y-3 pt-6">
-                                    <h3 class="text-[9px] font-black text-slate-400 uppercase tracking-widest pl-2">Payroll Status History</h3>
-                                    <div v-for="m in getLast6Months" :key="m.monthStr" class="glass-panel p-4 rounded-2xl flex justify-between items-center shadow-md border-slate-800/80">
-                                        <span class="font-bold text-xs text-slate-200">{{ m.label }}</span>
-                                        <button @click="togglePayrollPaid(m.monthStr)" 
-                                                :class="payrollStatus.find(p => p.id === m.monthStr)?.isPaid ? 'bg-brand-emerald/10 border-brand-emerald/20 text-brand-emerald font-black' : 'bg-brand-rose/10 border-brand-rose/20 text-brand-rose font-black'" 
-                                                class="px-4 py-2 rounded-xl border text-[9px] uppercase tracking-widest active:scale-95 transition-transform">
-                                            {{ payrollStatus.find(p => p.id === m.monthStr)?.isPaid ? 'Paid' : 'Unpaid' }}
                                         </button>
                                     </div>
                                 </div>
@@ -633,15 +800,6 @@
                                 <button @click="timeOffset++" class="px-4 py-2 bg-slate-800/80 hover:bg-slate-700 text-slate-300 font-bold active:scale-95 transition-transform text-[9px] uppercase tracking-wider rounded-xl" :class="{'opacity-30': timeOffset === 0}" :disabled="timeOffset === 0">Next →</button>
                             </div>
 
-                            <!-- Payroll Status Badge (Only in Month view) -->
-                            <div v-if="statTimeframe === 'Month'" class="mb-4">
-                                <div :class="isSelectedMonthPaid ? 'bg-brand-emerald/10 border-brand-emerald/20 text-brand-emerald' : 'bg-brand-rose/10 border-brand-rose/20 text-brand-rose'" 
-                                     class="w-full py-3.5 rounded-2xl border font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-2">
-                                    <span v-if="isSelectedMonthPaid">🟢 Payroll Status: Paid</span>
-                                    <span v-else>🔴 Payroll Status: Unpaid</span>
-                                </div>
-                            </div>
-
                             <!-- Big Total Hours Card -->
                             <div class="glass-panel p-8 rounded-[2.5rem] shadow-xl text-center relative overflow-hidden">
                                 <div class="absolute -top-12 -right-12 w-28 h-28 bg-brand-indigo/10 rounded-full blur-2xl"></div>
@@ -651,13 +809,42 @@
                                 </p>
                             </div>
 
-                            <!-- Worker Weekly Work Map Visual Indicator -->
+                            <!-- My Settlement / Decont Card (If exists for current worker) -->
+                            <div v-if="myLatestSettlement" class="glass-panel p-6 rounded-[2.5rem] shadow-xl border-brand-indigo/30 space-y-3">
+                                <div class="flex justify-between items-center">
+                                    <span class="text-[9px] font-black uppercase text-brand-indigo tracking-widest">Fișă Decont & Salariu ({{ formatMonth(myLatestSettlement.month) }})</span>
+                                    <span class="text-[8px] bg-brand-emerald/10 text-brand-emerald font-black px-2 py-0.5 rounded-full">Calculat</span>
+                                </div>
+                                <div class="grid grid-cols-2 gap-2 text-xs">
+                                    <div class="bg-slate-900/60 p-3 rounded-2xl border border-slate-800">
+                                        <span class="text-[8px] text-slate-400 font-bold uppercase block">Total Brut</span>
+                                        <span class="font-black text-white">€{{ (myLatestSettlement.gross || 0).toLocaleString(undefined, {maximumFractionDigits: 2}) }}</span>
+                                    </div>
+                                    <div class="bg-slate-900/60 p-3 rounded-2xl border border-slate-800">
+                                        <span class="text-[8px] text-brand-rose font-bold uppercase block">Total Minusuri</span>
+                                        <span class="font-black text-brand-rose">-€{{ (myLatestSettlement.totalDeductions || 0).toLocaleString(undefined, {maximumFractionDigits: 2}) }}</span>
+                                    </div>
+                                </div>
+                                <!-- Minusuri detaliate pentru muncitor -->
+                                <div v-if="myLatestSettlement.deductions && myLatestSettlement.deductions.length > 0" class="space-y-1 pt-1">
+                                    <span class="text-[8px] text-slate-500 uppercase font-black">Detalii Minusuri / Scăderi:</span>
+                                    <div v-for="(d, i) in myLatestSettlement.deductions" :key="i" class="flex justify-between text-[9px] text-slate-300 bg-slate-950/40 px-2.5 py-1 rounded-xl">
+                                        <span>• {{ d.reason }}</span>
+                                        <span class="text-brand-rose font-bold">-€{{ d.amount }}</span>
+                                    </div>
+                                </div>
+                                <div class="flex justify-between items-center pt-2 border-t border-slate-800/60">
+                                    <span class="text-[9px] font-black uppercase text-slate-400">Rest de Primit (Net):</span>
+                                    <span class="text-lg font-black text-brand-emerald">€{{ (myLatestSettlement.net || 0).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2}) }}</span>
+                                </div>
+                            </div>
+
+                            <!-- Weekly Visual Tracker -->
                             <div class="glass-panel p-6 rounded-[2.5rem] shadow-xl relative overflow-hidden">
                                 <h3 class="text-[9px] font-black text-slate-400 uppercase mb-4 tracking-widest">
                                     {{ statTimeframe === 'Week' ? 'My Weekly Work Map' : 'My Weekday Trends' }}
                                 </h3>
                                 
-                                <!-- Weekly visual bubbles for 'Week' view -->
                                 <div v-if="statTimeframe === 'Week'" class="grid grid-cols-7 gap-2 text-center">
                                     <div v-for="day in weeklyTrack" :key="day.dateStr" class="flex flex-col items-center">
                                         <span class="text-[9px] font-extrabold text-slate-400 uppercase mb-1.5">{{ day.dayName }}</span>
@@ -669,7 +856,6 @@
                                     </div>
                                 </div>
 
-                                <!-- Weekday bar charts for 'Month' & 'All' views -->
                                 <div v-else class="space-y-2.5">
                                     <div v-for="day in weekdayDistribution" :key="day.day" class="flex items-center gap-3">
                                         <span class="text-[10px] font-black text-slate-400 w-8 uppercase">{{ day.day }}</span>
@@ -677,37 +863,6 @@
                                             <div class="bg-gradient-to-r from-brand-indigo to-brand-violet h-2.5 rounded-full" :style="{ width: day.percentage + '%' }"></div>
                                         </div>
                                         <span class="text-[10px] font-black text-slate-300 w-8 text-right">{{ day.hours }}h</span>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- Worker Daily Days Worked Breakdown -->
-                            <div class="glass-panel p-6 rounded-[2.5rem] shadow-xl">
-                                <div class="flex justify-between items-center mb-4">
-                                    <h3 class="text-[9px] font-black text-slate-400 uppercase tracking-widest">Daily Breakdown</h3>
-                                    <span class="text-[8px] font-black text-brand-indigo bg-brand-indigo/10 px-2 py-0.5 rounded uppercase">{{ myDailyBreakdown.length }} Days Worked</span>
-                                </div>
-                                <div class="space-y-2 max-h-56 overflow-y-auto custom-scrollbar pr-2">
-                                    <div v-for="day in myDailyBreakdown" :key="day.date" class="flex justify-between items-center p-3 bg-slate-900/40 rounded-2xl border border-slate-800/40">
-                                        <span class="font-bold text-xs text-slate-200">{{ day.displayDate }}</span>
-                                        <span class="text-brand-indigo font-black text-xs">{{ day.hours }}h</span>
-                                    </div>
-                                </div>
-                                <div v-if="myDailyBreakdown.length === 0" class="text-center py-4 text-slate-500 text-xs font-semibold">
-                                    No work logged in this period.
-                                </div>
-                            </div>
-
-                            <!-- Site Breakdown -->
-                            <div v-if="mySiteHours.length > 0" class="glass-panel p-6 rounded-[2.5rem] shadow-xl">
-                                <h3 class="text-[9px] font-black text-slate-400 uppercase mb-4 tracking-widest">Site Breakdown</h3>
-                                <div v-for="(siteObj, index) in mySiteHours" :key="index" class="py-3.5 border-b border-slate-800/40 last:border-0 flex flex-col gap-1.5">
-                                    <div class="flex justify-between items-center">
-                                        <span class="font-bold text-xs text-slate-200">{{ siteObj.siteName }}</span>
-                                        <span class="text-brand-indigo font-black text-xs">{{ siteObj.hours }}h</span>
-                                    </div>
-                                    <div class="w-full bg-slate-900 rounded-full h-1.5 overflow-hidden">
-                                        <div class="bg-gradient-to-r from-brand-indigo to-brand-violet h-1.5 rounded-full" :style="{ width: getWorkerSiteHoursPercentage(siteObj.hours) + '%' }"></div>
                                     </div>
                                 </div>
                             </div>
@@ -721,15 +876,11 @@
                                 <div class="space-y-1">
                                     <div class="flex items-center gap-1.5">
                                         <span class="text-[8px] font-black text-brand-indigo bg-brand-indigo/10 px-2.5 py-0.5 rounded uppercase tracking-wider">{{ log.date }}</span>
-                                        <span class="text-[8px] font-black text-brand-emerald bg-brand-emerald/10 px-2 py-0.5 rounded uppercase tracking-wider">Confirmed</span>
+                                        <span class="text-[8px] font-black text-brand-emerald bg-brand-emerald/10 px-2.5 py-0.5 rounded uppercase tracking-wider">Confirmed</span>
                                     </div>
                                     <h4 class="font-bold text-slate-200 text-xs mt-1.5">{{ getSiteName(log.sid) }}</h4>
                                 </div>
                                 <span class="text-lg font-black text-brand-indigo">{{ parseFloat(log.h) || 0 }}<span class="text-xs text-slate-500 font-bold ml-0.5">h</span></span>
-                            </div>
-                            
-                            <div v-if="mySortedLogs.length === 0" class="text-center py-12 text-slate-500">
-                                No historical logs found.
                             </div>
                         </div>
 
@@ -741,15 +892,45 @@
             <!--                  NAVBARS                   -->
             <!-- ========================================== -->
 
-            <!-- ADMIN NAVBAR -->
-            <nav v-if="isAdmin" class="fixed bottom-0 left-0 right-0 bg-slate-950/90 backdrop-blur-xl border-t border-slate-800/80 px-4 py-4 pb-8 flex justify-around safe-bottom z-40 shadow-2xl">
-                <button v-for="t in ['log', 'jobs', 'stats', 'history', 'setup']" :key="t" @click="view = t" :class="{ 'active-nav': view === t }" class="text-slate-500 hover:text-slate-300 transition-all flex flex-col items-center relative py-1">
-                    <div v-if="t==='log'"><svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M17.414 2.586a2 2 0 00-2.828 0L7 10.172V13h2.828l7.586-7.586a2 2 0 000-2.828z"></path><path fill-rule="evenodd" d="M2 6a2 2 0 012-2h4a1 1 0 010 2H4v10h10v-4a1 1 0 112 0v4a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" clip-rule="evenodd"></path></svg></div>
-                    <div v-if="t==='jobs'"><svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M4 4a2 2 0 00-2 2v1h16V6a2 2 0 00-2-2H4z"></path><path fill-rule="evenodd" d="M18 9H2v5a2 2 0 002 2h12a2 2 0 002-2V9zM4 13a1 1 0 011-1h1a1 1 0 110 2H5a1 1 0 01-1-1zm5-1a1 1 0 100 2h1a1 1 0 100-2H9z" clip-rule="evenodd"></path></svg></div>
-                    <div v-if="t==='stats'"><svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M2 11a1 1 0 011-1h2a1 1 0 011 1v5a1 1 0 01-1 1H3a1 1 0 01-1-1v-5zM8 7a1 1 0 011-1h2a1 1 0 011 1v9a1 1 0 01-1 1H9a1 1 0 01-1-1V7zM14 4a1 1 0 011-1h2a1 1 0 011 1v12a1 1 0 01-1 1h-2a1 1 0 01-1-1V4z"></path></svg></div>
-                    <div v-if="t==='history'"><svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd"></path></svg></div>
-                    <div v-if="t==='setup'"><svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.533 1.533 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.533 1.533 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd"></path></svg></div>
-                    <span class="text-[7.5px] font-black uppercase mt-1 tracking-wider">{{ t }}</span>
+            <!-- ADMIN NAVBAR (ACUM CU BUTONUL SEPARAT: DECONT) -->
+            <nav v-if="isAdmin" class="fixed bottom-0 left-0 right-0 bg-slate-950/90 backdrop-blur-xl border-t border-slate-800/80 px-2 sm:px-4 py-3 pb-8 flex justify-around safe-bottom z-40 shadow-2xl">
+                <!-- Log -->
+                <button @click="view = 'log'" :class="{ 'active-nav': view === 'log' }" class="text-slate-500 hover:text-slate-300 transition-all flex flex-col items-center relative py-1">
+                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M17.414 2.586a2 2 0 00-2.828 0L7 10.172V13h2.828l7.586-7.586a2 2 0 000-2.828z"></path><path fill-rule="evenodd" d="M2 6a2 2 0 012-2h4a1 1 0 010 2H4v10h10v-4a1 1 0 112 0v4a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" clip-rule="evenodd"></path></svg>
+                    <span class="text-[7.5px] font-black uppercase mt-1 tracking-wider">Log</span>
+                </button>
+
+                <!-- Jobs -->
+                <button @click="view = 'jobs'" :class="{ 'active-nav': view === 'jobs' }" class="text-slate-500 hover:text-slate-300 transition-all flex flex-col items-center relative py-1">
+                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M4 4a2 2 0 00-2 2v1h16V6a2 2 0 00-2-2H4z"></path><path fill-rule="evenodd" d="M18 9H2v5a2 2 0 002 2h12a2 2 0 002-2V9zM4 13a1 1 0 011-1h1a1 1 0 110 2H5a1 1 0 01-1-1zm5-1a1 1 0 100 2h1a1 1 0 100-2H9z" clip-rule="evenodd"></path></svg>
+                    <span class="text-[7.5px] font-black uppercase mt-1 tracking-wider">Jobs</span>
+                </button>
+
+                <!-- NOUL MENIU: DECONT & MINUSURI -->
+                <button @click="view = 'settlement'" :class="{ 'active-nav': view === 'settlement' }" class="text-slate-500 hover:text-slate-300 transition-all flex flex-col items-center relative py-1">
+                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M4 4a2 2 0 00-2 2v1h16V6a2 2 0 00-2-2H4z"/>
+                        <path fill-rule="evenodd" d="M18 9H2v5a2 2 0 002 2h12a2 2 0 002-2V9zM8 12a1 1 0 011-1h2a1 1 0 110 2H9a1 1 0 01-1-1z" clip-rule="evenodd"/>
+                    </svg>
+                    <span class="text-[7.5px] font-black uppercase mt-1 tracking-wider text-brand-indigo">Decont</span>
+                </button>
+
+                <!-- Stats -->
+                <button @click="view = 'stats'" :class="{ 'active-nav': view === 'stats' }" class="text-slate-500 hover:text-slate-300 transition-all flex flex-col items-center relative py-1">
+                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M2 11a1 1 0 011-1h2a1 1 0 011 1v5a1 1 0 01-1 1H3a1 1 0 01-1-1v-5zM8 7a1 1 0 011-1h2a1 1 0 011 1v9a1 1 0 01-1 1H9a1 1 0 01-1-1V7zM14 4a1 1 0 011-1h2a1 1 0 011 1v12a1 1 0 01-1 1h-2a1 1 0 01-1-1V4z"></path></svg>
+                    <span class="text-[7.5px] font-black uppercase mt-1 tracking-wider">Stats</span>
+                </button>
+
+                <!-- History -->
+                <button @click="view = 'history'" :class="{ 'active-nav': view === 'history' }" class="text-slate-500 hover:text-slate-300 transition-all flex flex-col items-center relative py-1">
+                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd"></path></svg>
+                    <span class="text-[7.5px] font-black uppercase mt-1 tracking-wider">History</span>
+                </button>
+
+                <!-- Setup -->
+                <button @click="view = 'setup'" :class="{ 'active-nav': view === 'setup' }" class="text-slate-500 hover:text-slate-300 transition-all flex flex-col items-center relative py-1">
+                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.533 1.533 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.533 1.533 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd"></path></svg>
+                    <span class="text-[7.5px] font-black uppercase mt-1 tracking-wider">Setup</span>
                 </button>
             </nav>
 
@@ -779,13 +960,13 @@
             collection as fsCollection, 
             doc as fsDoc, 
             addDoc as fsAddDoc, 
-            setDoc as fsSetDoc,
+            setDoc as fsSetDoc, 
             updateDoc as fsUpdateDoc, 
             deleteDoc as fsDeleteDoc, 
             onSnapshot as fsOnSnapshot 
         } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // iOS module compatibility: safe fallback if dynamic window context fails
+        // iOS module compatibility
         const { createApp, ref, reactive, computed, onMounted, watch } = window.Vue || Vue;
 
         const firebaseConfig = {
@@ -797,10 +978,8 @@
             appId: "1:2932232690:web:acb6842bfcb49d427adb6b"
         };
 
-        // iOS Standalone Fix: check if the app is already in memory before initializing a new one
         const fbApp = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
         
-        // Private Mode Safeguard: fallback to Local/Memory persistence if IndexedDB is blocked
         let auth;
         try {
             auth = initializeAuth(fbApp, {
@@ -822,10 +1001,12 @@
                 const authForm = reactive({ email: '', pass: '' });
                 const view = ref('log');
                 const loading = ref(true);
+                const toastMessage = ref('');
 
                 const sites = ref([]);
                 const employees = ref([]);
                 const logs = ref([]);
+                const settlements = ref([]); // Noul state sincronizat cu Cloud pentru deconturi
                 
                 // Form models
                 const form = ref({ 
@@ -834,6 +1015,32 @@
                     siteId: '', 
                     selected: [] 
                 });
+
+                // State pentru Noul Meniu: Decont & Minusuri
+                const settleSubTab = ref('calc'); // 'calc' | 'archive'
+                const dInit = new Date();
+                const currentMonthStr = `${dInit.getFullYear()}-${String(dInit.getMonth() + 1).padStart(2, '0')}`;
+                
+                const settleForm = reactive({
+                    month: currentMonthStr,
+                    eid: '',
+                    hours: '',
+                    rate: 0,
+                    deductions: [
+                        { id: '1', reason: 'Motorină dubă / șantier', amount: '' },
+                        { id: '2', reason: 'Bonuri de masă', amount: '' },
+                        { id: '3', reason: 'Obiecte cumpărate / Scule', amount: '' }
+                    ]
+                });
+
+                const deductionPresets = [
+                    { label: '⛽ Motorină', reason: 'Motorină dubă / șantier' },
+                    { label: '🎫 Bonuri masă', reason: 'Bonuri de masă' },
+                    { label: '🛠️ Obiecte / Scule', reason: 'Obiecte cumpărate / Scule' },
+                    { label: '💵 Avans numerar', reason: 'Avans numerar acordat' },
+                    { label: '🏠 Cazare', reason: 'Decont cazare' },
+                    { label: '❌ Absență', reason: 'Penalizare absență nemotivată' }
+                ];
 
                 // Feature additions
                 const news = ref({ site: '', emp: '', empRate: '', empEmail: '' });
@@ -851,10 +1058,13 @@
                 // Time Filter Logic
                 const statTimeframe = ref('Month');
                 const timeOffset = ref(0);
-                const d = new Date();
-                const selectedMonth = ref(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`);
+                const selectedMonth = ref(currentMonthStr);
 
-                // Safe Timezone Date Formatter (Prevents iOS timezone shift)
+                const showToast = (msg) => {
+                    toastMessage.value = msg;
+                    setTimeout(() => { toastMessage.value = ''; }, 3500);
+                };
+
                 const formatDisplayDateSafe = (dateStr) => {
                     if (!dateStr) return '';
                     const parts = dateStr.split('-');
@@ -863,7 +1073,6 @@
                     return logD.toLocaleDateString('en-US', {weekday: 'short', month: 'short', day: 'numeric'});
                 };
 
-                // Helper to calculate exact European calendar dates (Mon-Sun) for Week view
                 const getWeekDates = () => {
                     const now = new Date();
                     const dayOfWeek = now.getDay();
@@ -885,7 +1094,6 @@
                     return list;
                 };
 
-                // Sync Month Picker to Offset
                 watch(selectedMonth, (newMonth) => {
                     if (!newMonth || statTimeframe.value !== 'Month') return;
                     const [year, month] = newMonth.split('-').map(Number);
@@ -894,7 +1102,6 @@
                     if (timeOffset.value !== monthsDiff) timeOffset.value = monthsDiff;
                 });
 
-                // Sync Offset to Month Picker
                 watch(timeOffset, (newVal) => {
                     if (statTimeframe.value === 'Month') {
                         const now = new Date();
@@ -908,7 +1115,7 @@
                     if(!val) return 'MONTH';
                     const [year, month] = val.split('-');
                     const date = new Date(year, month - 1);
-                    return date.toLocaleDateString('en-US', { month: 'short', year: '2-digit' }).toUpperCase();
+                    return date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' }).toUpperCase();
                 };
 
                 onMounted(async () => {
@@ -941,6 +1148,11 @@
                             if (e.email) empEmails[e.id] = e.email;
                             if (empRates[e.id] === undefined) empRates[e.id] = parseFloat(e.rate) || 0;
                         });
+                        // Inițializează selectia de muncitor in decont daca e goala
+                        if (!settleForm.eid && employees.value.length > 0) {
+                            settleForm.eid = employees.value[0].id;
+                            settleForm.rate = parseFloat(employees.value[0].rate) || 0;
+                        }
                     }, (err) => console.warn("Firestore employees snapshot failed:", err));
 
                     fsOnSnapshot(fsCollection(db, 'artifacts', appId, 'public', 'data', 'logs'), (snap) => {
@@ -950,6 +1162,11 @@
                     fsOnSnapshot(fsCollection(db, 'artifacts', appId, 'public', 'data', 'payroll_status'), (snap) => {
                         payrollStatus.value = snap.docs.map(d => ({ id: d.id, ...d.data() }));
                     }, (err) => console.warn("Firestore payroll snapshot failed:", err));
+
+                    // Sincronizare Firestore pentru Deconturi & Minusuri (Cloud Storage)
+                    fsOnSnapshot(fsCollection(db, 'artifacts', appId, 'public', 'data', 'settlements'), (snap) => {
+                        settlements.value = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+                    }, (err) => console.warn("Firestore settlements snapshot failed:", err));
                 };
 
                 const handleLogin = async () => {
@@ -966,7 +1183,6 @@
 
                 const handleLogout = () => signOut(auth);
 
-                // --- ROLE LOGIC ---
                 const currentUserEmployee = computed(() => {
                     if (!user.value || !user.value.email) return null;
                     return employees.value.find(e => e.email && e.email.toLowerCase() === user.value.email.toLowerCase());
@@ -974,7 +1190,6 @@
 
                 const isAdmin = computed(() => !currentUserEmployee.value);
                 
-                // Hide archived elements from active dropdowns
                 const activeSites = computed(() => sortedSites.value.filter(s => !s.isArchived));
                 const activeEmployees = computed(() => employees.value.filter(e => !e.isArchived));
 
@@ -1012,6 +1227,7 @@
                             });
                         }
                         form.value.selected = [];
+                        showToast('✅ Pontaj sincronizat cu succes!');
                     } catch (e) { 
                         console.error(e); 
                     } finally { 
@@ -1028,7 +1244,174 @@
                     }
                     await fsDeleteDoc(fsDoc(db, 'artifacts', appId, 'public', 'data', 'logs', id));
                     deletingLogId.value = null;
+                    showToast('🗑️ Înregistrare ștearsă');
                 };
+
+                // --- CALCULATOR DECONT & MINUSURI LOGIC ---
+                const onSettleEmpChange = () => {
+                    const emp = employees.value.find(e => e.id === settleForm.eid);
+                    if (emp) {
+                        settleForm.rate = parseFloat(emp.rate) || 0;
+                    }
+                };
+
+                // Preluare automată ore din pontaj pe luna selectată
+                const settleAutoHours = computed(() => {
+                    if (!settleForm.eid || !settleForm.month) return 0;
+                    return logs.value
+                        .filter(l => {
+                            if (l.eid !== settleForm.eid) return false;
+                            return l.date && l.date.startsWith(settleForm.month);
+                        })
+                        .reduce((sum, log) => sum + (parseFloat(log.h) || 0), 0);
+                });
+
+                const settleGross = computed(() => {
+                    const h = parseFloat(settleForm.hours) || 0;
+                    const r = parseFloat(settleForm.rate) || 0;
+                    return h * r;
+                });
+
+                const settleTotalDeductions = computed(() => {
+                    return settleForm.deductions.reduce((acc, curr) => {
+                        const val = parseFloat(curr.amount) || 0;
+                        return acc + val;
+                    }, 0);
+                });
+
+                const settleNet = computed(() => {
+                    return settleGross.value - settleTotalDeductions.value;
+                });
+
+                const addSettleDeduction = (reason = '') => {
+                    settleForm.deductions.push({
+                        id: 'ded_' + Date.now() + Math.random(),
+                        reason: reason || 'Scădere nouă',
+                        amount: ''
+                    });
+                };
+
+                const removeSettleDeduction = (id) => {
+                    settleForm.deductions = settleForm.deductions.filter(d => d.id !== id);
+                };
+
+                const saveSettlementToCloud = async () => {
+                    if (!user.value || !isAdmin.value || !settleForm.eid) return;
+                    loading.value = true;
+                    
+                    const cleanDeductions = settleForm.deductions
+                        .filter(d => (parseFloat(d.amount) || 0) > 0)
+                        .map(d => ({ id: d.id, reason: d.reason, amount: parseFloat(d.amount) }));
+
+                    const emp = employees.value.find(e => e.id === settleForm.eid);
+
+                    const record = {
+                        eid: settleForm.eid,
+                        workerName: emp?.name || 'Worker',
+                        month: settleForm.month,
+                        hours: parseFloat(settleForm.hours) || 0,
+                        rate: parseFloat(settleForm.rate) || 0,
+                        gross: settleGross.value,
+                        deductions: cleanDeductions,
+                        totalDeductions: settleTotalDeductions.value,
+                        net: settleNet.value,
+                        createdAt: Date.now()
+                    };
+
+                    try {
+                        await fsAddDoc(fsCollection(db, 'artifacts', appId, 'public', 'data', 'settlements'), record);
+                        showToast(`💾 Decont salvat pentru ${record.workerName}!`);
+                        settleSubTab.value = 'archive';
+                    } catch (e) {
+                        console.error("Save settlement error:", e);
+                    } finally {
+                        loading.value = false;
+                    }
+                };
+
+                const deleteSettlement = async (id) => {
+                    if (!user.value || !isAdmin.value) return;
+                    await fsDeleteDoc(fsDoc(db, 'artifacts', appId, 'public', 'data', 'settlements', id));
+                    showToast('🗑️ Decont șters din istoric');
+                };
+
+                const copyWhatsAppSettlement = () => {
+                    const emp = employees.value.find(e => e.id === settleForm.eid);
+                    const empName = emp ? emp.name.toUpperCase() : 'MUNCITOR';
+                    const validDeductions = settleForm.deductions.filter(d => (parseFloat(d.amount) || 0) > 0);
+
+                    let msg = `📋 *DECONT SALARIU - ${empName}*\n`;
+                    msg += `🗓️ *Luna:* ${formatMonth(settleForm.month)}\n`;
+                    msg += `━━━━━━━━━━━━━━━━━━━━━\n`;
+                    msg += `⏱️ *Ore lucrate:* ${settleForm.hours || 0} ore × €${settleForm.rate || 0}/h = *€${settleGross.value.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}*\n\n`;
+
+                    if (validDeductions.length > 0) {
+                        msg += `🔻 *SCĂDERI & MINUSURI (-€${settleTotalDeductions.value.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}):*\n`;
+                        validDeductions.forEach(d => {
+                            msg += ` • ${d.reason}: -€${parseFloat(d.amount).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}\n`;
+                        });
+                        msg += `━━━━━━━━━━━━━━━━━━━━━\n`;
+                    } else {
+                        msg += `🔻 *Fără scăderi / minusuri.*\n━━━━━━━━━━━━━━━━━━━━━\n`;
+                    }
+
+                    msg += `💰 *REST DE DAT (NET): €${settleNet.value.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}*`;
+
+                    const textarea = document.createElement('textarea');
+                    textarea.value = msg;
+                    document.body.appendChild(textarea);
+                    textarea.select();
+                    try {
+                        document.execCommand('copy');
+                        showToast('📋 Copiat pentru WhatsApp!');
+                    } catch (e) {
+                        showToast('❌ Eroare la copiere');
+                    }
+                    document.body.removeChild(textarea);
+                };
+
+                const copySpecificSettlement = (item) => {
+                    const empName = (item.workerName || getEmpName(item.eid)).toUpperCase();
+                    let msg = `📋 *DECONT SALARIU - ${empName}*\n`;
+                    msg += `🗓️ *Luna:* ${formatMonth(item.month)}\n`;
+                    msg += `━━━━━━━━━━━━━━━━━━━━━\n`;
+                    msg += `⏱️ *Ore lucrate:* ${item.hours} ore × €${item.rate}/h = *€${(item.gross || 0).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}*\n\n`;
+
+                    if (item.deductions && item.deductions.length > 0) {
+                        msg += `🔻 *SCĂDERI & MINUSURI (-€${(item.totalDeductions || 0).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}):*\n`;
+                        item.deductions.forEach(d => {
+                            msg += ` • ${d.reason}: -€${parseFloat(d.amount).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}\n`;
+                        });
+                        msg += `━━━━━━━━━━━━━━━━━━━━━\n`;
+                    }
+
+                    msg += `💰 *REST DE DAT (NET): €${(item.net || 0).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}*`;
+
+                    const textarea = document.createElement('textarea');
+                    textarea.value = msg;
+                    document.body.appendChild(textarea);
+                    textarea.select();
+                    try {
+                        document.execCommand('copy');
+                        showToast('📋 Copiat pentru WhatsApp!');
+                    } catch (e) {
+                        showToast('❌ Eroare la copiere');
+                    }
+                    document.body.removeChild(textarea);
+                };
+
+                const sortedSettlements = computed(() => {
+                    return [...settlements.value].sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+                });
+
+                // Worker settlement info
+                const myLatestSettlement = computed(() => {
+                    if (isAdmin.value || !currentUserEmployee.value) return null;
+                    const myEid = currentUserEmployee.value.id;
+                    return settlements.value
+                        .filter(s => s.eid === myEid)
+                        .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0))[0] || null;
+                });
 
                 // Milestone Helper - total contract value of the site
                 const calculateSiteTotal = (sid) => {
@@ -1037,7 +1420,6 @@
                     }, 0);
                 };
 
-                // Milestone Helper - actual portion paid so far
                 const calculateSitePaid = (sid) => {
                     const s = sites.value.find(x => x.id === sid);
                     if (!s) return 0;
@@ -1049,7 +1431,6 @@
                     }, 0);
                 };
 
-                // Milestone Helper - remaining owed amount
                 const calculateSiteOwed = (sid) => {
                     const s = sites.value.find(x => x.id === sid);
                     if (!s || s.isPaid) return 0;
@@ -1071,7 +1452,6 @@
                 const addItemToSite = async (sid) => {
                     if (!user.value || !isAdmin.value || !priceForm[sid]) return;
                     const s = sites.value.find(x => x.id === sid);
-                    // Newly created work defaults to 0% paid milestone
                     const items = [...(s.pricingItems || []), { id: Date.now(), ...priceForm[sid], paidPercent: 0 }];
                     await fsUpdateDoc(fsDoc(db, 'artifacts', appId, 'public', 'data', 'sites', sid), { pricingItems: items });
                     priceForm[sid].desc = ''; priceForm[sid].qty = 1; priceForm[sid].price = 0;
@@ -1084,7 +1464,6 @@
                     await fsUpdateDoc(fsDoc(db, 'artifacts', appId, 'public', 'data', 'sites', sid), { pricingItems: items });
                 };
 
-                // Milestone collection updater
                 const updateItemPaymentPercent = async (sid, iid, percent) => {
                     if (!user.value || !isAdmin.value) return;
                     const s = sites.value.find(x => x.id === sid);
@@ -1114,6 +1493,7 @@
                         createdAt: Date.now()
                     }); 
                     news.value.site = ''; 
+                    showToast('🏗️ Șantier adăugat!');
                 };
 
                 const addEmp = async () => { 
@@ -1127,6 +1507,7 @@
                     news.value.emp = ''; 
                     news.value.empEmail = '';
                     news.value.empRate = '';
+                    showToast('👷 Muncitor adăugat!');
                 };
 
                 const linkEmpEmail = async (id) => {
@@ -1147,6 +1528,7 @@
                     if (!user.value || !isAdmin.value) return;
                     const r = parseFloat(empRates[id]) || 0;
                     await fsUpdateDoc(fsDoc(db, 'artifacts', appId, 'public', 'data', 'employees', id), { rate: r });
+                    showToast('💶 Tarif actualizat!');
                 };
 
                 const archiveSite = async (id) => { 
@@ -1248,7 +1630,6 @@
                     return '';
                 });
 
-                // WORKER SPECIFIC COMPUTEDS
                 const mySiteHours = computed(() => {
                     if (isAdmin.value || !currentUserEmployee.value) return [];
                     const myEid = currentUserEmployee.value.id;
@@ -1264,11 +1645,6 @@
                 });
 
                 const myTotalHours = computed(() => mySiteHours.value.reduce((sum, s) => sum + s.hours, 0));
-
-                const getWorkerSiteHoursPercentage = (hours) => {
-                    const total = myTotalHours.value;
-                    return total > 0 ? Math.round((hours / total) * 100) : 0;
-                };
 
                 const mySortedLogs = computed(() => {
                     if (isAdmin.value || !currentUserEmployee.value) return [];
@@ -1296,18 +1672,6 @@
                     await fsSetDoc(fsDoc(db, 'artifacts', appId, 'public', 'data', 'payroll_status', monthStr), { isPaid });
                 };
 
-                const getLast6Months = computed(() => {
-                    const list = [];
-                    const now = new Date();
-                    for (let i = 0; i < 6; i++) {
-                        const temp = new Date(now.getFullYear(), now.getMonth() - i, 1);
-                        const monthStr = `${temp.getFullYear()}-${String(temp.getMonth() + 1).padStart(2, '0')}`;
-                        const label = temp.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
-                        list.push({ monthStr, label });
-                    }
-                    return list;
-                });
-
                 const sortedSites = computed(() => {
                     return [...sites.value].sort((a, b) => {
                         const logsA = logs.value.filter(l => l.sid === a.id);
@@ -1329,16 +1693,21 @@
                 });
 
                 return { 
-                    user, authForm, authLoading, authError, handleLogin, handleLogout, view, sites, employees, logs, form, news, priceForm, loading, 
+                    user, authForm, authLoading, authError, handleLogin, handleLogout, view, sites, employees, logs, form, news, priceForm, loading, toastMessage,
                     statTimeframe, timeOffset, currentTimeLabel, isAdmin, empEmails, empRates, selectedMonth, formatMonth,
                     activeSites, activeEmployees, historyFilters, deletingLogId, deletingSiteId, deletingEmpId,
                     toggleEmp, saveLabor, deleteLog, addItemToSite, removeItemFromSite, togglePaid, addSite, addEmp, linkEmpEmail, unlinkEmpEmail, archiveSite, archiveEmp, updateEmpRate, updateItemPaymentPercent,
                     calculateSiteTotal, calculateSitePaid, calculateSiteOwed, getSiteHours, getSiteHoursPercentage, getTodayHours,
                     getAllTimeSiteHours, calculateSiteYield,
-                    mySiteHours, myTotalHours, mySortedLogs, getWorkerSiteHoursPercentage,
+                    mySiteHours, myTotalHours, mySortedLogs,
                     getEmpName, getSiteName,
-                    payrollStatus, getSelectedMonthStr, isSelectedMonthPaid, togglePayrollPaid, getLast6Months, sortedSites,
+                    payrollStatus, getSelectedMonthStr, isSelectedMonthPaid, togglePayrollPaid, sortedSites,
                     
+                    // Modul Decont Returnat
+                    settleSubTab, settleForm, deductionPresets, settleAutoHours, settleGross, settleTotalDeductions, settleNet,
+                    addSettleDeduction, removeSettleDeduction, saveSettlementToCloud, deleteSettlement, copyWhatsAppSettlement,
+                    copySpecificSettlement, onSettleEmpChange, settlements, sortedSettlements, myLatestSettlement,
+
                     statsEmpHours: computed(() => {
                         const res = {};
                         logs.value.filter(l => isDateInTimeframe(l.date)).forEach(l => {
@@ -1365,24 +1734,6 @@
                             }));
                     }),
 
-                    myDailyBreakdown: computed(() => {
-                        if (isAdmin.value || !currentUserEmployee.value) return [];
-                        const myEid = currentUserEmployee.value.id;
-                        const days = {};
-                        logs.value.filter(l => l.eid === myEid && isDateInTimeframe(l.date)).forEach(l => {
-                            if (!days[l.date]) days[l.date] = 0;
-                            days[l.date] += (parseFloat(l.h) || 0);
-                        });
-                        return Object.keys(days)
-                            .sort((a,b) => new Date(b) - new Date(a))
-                            .map(date => ({
-                                date,
-                                displayDate: formatDisplayDateSafe(date),
-                                hours: days[date]
-                            }));
-                    }),
-
-                    // Maps 7 actual dates of selected week and calculates worked status + hours
                     weeklyTrack: computed(() => {
                         const days = getWeekDates();
                         const relevantLogs = logs.value.filter(l => {
@@ -1403,7 +1754,6 @@
                         });
                     }),
 
-                    // Aggregates total hours worked by weekday (Monday-Sunday) for larger trends
                     weekdayDistribution: computed(() => {
                         const relevantLogs = logs.value.filter(l => {
                             if (!isDateInTimeframe(l.date)) return false;
@@ -1454,8 +1804,6 @@
 
                         return { paid, unpaid, laborCost, profit: (paid + unpaid) - laborCost };
                     }),
-
-                    sortedLogs: computed(() => [...logs.value].sort((a,b) => new Date(b.date) - new Date(a.date))),
 
                     filteredLogs: computed(() => {
                         return logs.value
