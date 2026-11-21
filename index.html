@@ -43,7 +43,9 @@
                         slate: {
                             950: '#030712',
                             900: '#0f172a',
+                            850: '#172033',
                             800: '#1e293b',
+                            755: '#273449',
                             750: '#1e293b90',
                             700: '#334155',
                             600: '#475569',
@@ -80,10 +82,13 @@
             background-color: #030712;
             -webkit-user-select: none;
             user-select: none;
+            font-variant-numeric: tabular-nums;
         }
         .active-nav { 
-            color: #8b5cf6; 
-            text-shadow: 0 0 12px rgba(139, 92, 246, 0.4);
+            color: #c4b5fd !important;
+            background: rgba(99, 102, 241, 0.16);
+            border: 1px solid rgba(139, 92, 246, 0.32);
+            box-shadow: 0 0 16px rgba(99, 102, 241, 0.22);
         }
         .custom-scrollbar::-webkit-scrollbar { 
             width: 5px; 
@@ -99,26 +104,48 @@
         .custom-scrollbar::-webkit-scrollbar-thumb:hover { 
             background: #475569; 
         }
+        .safe-top {
+            padding-top: max(1rem, env(safe-area-inset-top, 1rem));
+        }
         .safe-bottom { 
-            padding-bottom: env(safe-area-inset-bottom, 24px); 
+            padding-bottom: max(1rem, env(safe-area-inset-bottom, 1rem)); 
         }
         .glass-panel {
-            background: rgba(15, 23, 42, 0.65);
-            backdrop-filter: blur(16px);
-            -webkit-backdrop-filter: blur(16px);
-            border: 1px solid rgba(51, 65, 85, 0.5);
+            background: linear-gradient(180deg, rgba(17, 24, 39, 0.78) 0%, rgba(15, 23, 42, 0.68) 100%);
+            backdrop-filter: blur(18px);
+            -webkit-backdrop-filter: blur(18px);
+            border: 1px solid rgba(71, 85, 105, 0.42);
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06), 0 12px 32px rgba(2, 6, 23, 0.42);
+        }
+        .glass-panel.rounded-\[2\.5rem\] {
+            border-radius: 1.75rem;
         }
         .glass-input {
-            background: rgba(30, 41, 59, 0.45);
-            border: 1px solid rgba(51, 65, 85, 0.4);
+            background: rgba(15, 23, 42, 0.65);
+            border: 1px solid rgba(71, 85, 105, 0.45);
+            transition: border-color 0.18s ease, box-shadow 0.18s ease, background-color 0.18s ease;
         }
         .glass-input:focus {
+            background: rgba(15, 23, 42, 0.85);
             border-color: #6366f1;
-            box-shadow: 0 0 10px rgba(99, 102, 241, 0.25);
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.18);
         }
+        /* Lizibilitate sporită în lumină naturală pentru etichete mici */
+        .text-\[7\.5px\] { font-size: 9px !important; line-height: 1.25; }
+        .text-\[8px\] { font-size: 9.5px !important; line-height: 1.3; }
+        .text-\[8\.5px\] { font-size: 10px !important; line-height: 1.35; }
+        .text-slate-500 { color: #94a3b8; }
+
         @keyframes fadeInDown {
             from { opacity: 0; transform: translateY(-10px); }
             to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes viewFadeIn {
+            from { opacity: 0; transform: translateY(6px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        main > div {
+            animation: viewFadeIn 0.18s ease-out;
         }
         .animate-toast {
             animation: fadeInDown 0.3s ease-out forwards;
@@ -160,10 +187,10 @@
                 </div>
                 <div class="space-y-4">
                     <div class="relative">
-                        <input v-model="authForm.email" type="email" placeholder="Adresă Email" class="w-full glass-input p-4 pl-5 rounded-2xl font-semibold outline-none text-sm text-slate-100 transition-all">
+                        <input v-model="authForm.email" @keyup.enter="handleLogin" type="email" placeholder="Adresă Email" class="w-full glass-input p-4 pl-5 rounded-2xl font-semibold outline-none text-sm text-slate-100 transition-all">
                     </div>
                     <div class="relative">
-                        <input v-model="authForm.pass" type="password" placeholder="Parolă" class="w-full glass-input p-4 pl-5 rounded-2xl font-semibold outline-none text-sm text-slate-100 transition-all">
+                        <input v-model="authForm.pass" @keyup.enter="handleLogin" type="password" placeholder="Parolă" class="w-full glass-input p-4 pl-5 rounded-2xl font-semibold outline-none text-sm text-slate-100 transition-all">
                     </div>
                     <button @click="handleLogin" class="w-full bg-gradient-to-r from-brand-indigo to-brand-violet hover:from-brand-indigo/90 hover:to-brand-violet/90 text-white font-black py-4 rounded-2xl shadow-lg shadow-brand-indigo/20 active:scale-95 transition-all text-sm tracking-widest uppercase">
                         {{ authLoading ? 'SE VERIFICĂ...' : 'AUTENTIFICARE' }}
@@ -175,63 +202,70 @@
 
         <!-- CONȚINUT APLICAȚIE -->
         <template v-if="user">
-            <!-- Antet (Header) -->
-            <header class="bg-slate-900/40 backdrop-blur-md border-b border-slate-800/60 px-6 py-4 pt-10 sticky top-0 z-30 flex justify-between items-center shadow-md">
-                <div class="flex items-center gap-3">
-                    <div class="w-8 h-8 rounded-xl overflow-hidden border border-slate-750 flex items-center justify-center shadow-md">
-                        <img src="./icon-192.png" alt="Siglă SP CREATIV" class="w-full h-full object-cover">
-                    </div>
-                    <div>
-                        <h1 class="text-md font-black text-transparent bg-clip-text bg-gradient-to-r from-brand-indigo to-brand-violet italic uppercase leading-none">SP CREATIV</h1>
-                        <p class="text-[8px] font-extrabold uppercase mt-1 tracking-wider" :class="isAdmin ? 'text-brand-indigo' : 'text-brand-emerald'">
-                            {{ isAdmin ? 'Administrator' : 'Mod Muncitor' }} • {{ (user.email || '').split('@')[0] }}
-                        </p>
-                    </div>
-                </div>
-                <div class="flex items-center gap-2.5">
-                    <div v-if="loading" class="animate-spin h-3.5 w-3.5 border-2 border-brand-indigo border-t-transparent rounded-full"></div>
-                    <!-- Clopoțel Alerte Flotă & Documente (Doar Admin) -->
-                    <button v-if="isAdmin" @click="view = 'fleet'"
-                            :class="view === 'fleet' ? 'bg-brand-indigo/25 border-brand-indigo/60 text-white' : 'bg-slate-800/80 border-slate-700/50 text-slate-200 hover:bg-slate-700/80'"
-                            class="relative p-2 rounded-xl border text-xs active:scale-90 transition-all"
-                            title="Alerte Flotă & Documente">
-                        <span>🔔</span>
-                        <span v-if="fleetUrgentCount > 0"
-                              class="absolute -top-1.5 -right-1.5 min-w-[1.1rem] h-[1.1rem] px-1 bg-brand-rose text-white text-[8px] font-black rounded-full flex items-center justify-center shadow-lg shadow-brand-rose/40 animate-pulse">
-                            {{ fleetUrgentCount }}
-                        </span>
-                    </button>
-                    <button @click="handleLogout" class="text-[9px] font-black bg-slate-800/80 hover:bg-slate-755 border border-slate-700/50 px-3.5 py-1.5 rounded-full uppercase active:scale-90 transition-all tracking-wider text-slate-300">Deconectare</button>
-                </div>
-            </header>
-
-            <!-- BANNER URGENT ALERTE FLOTĂ & DOCUMENTE (< 30 ZILE SAU EXPIRATE) -->
-            <div v-if="isAdmin && fleetUrgentCount > 0 && view !== 'fleet'"
-                 @click="view = 'fleet'"
-                 :class="fleetUrgentItems[0].daysLeft <= 0 ? 'fleet-expired-pulse bg-gradient-to-r from-brand-rose/30 via-rose-950/90 to-brand-rose/30 border-brand-rose/70' : 'bg-gradient-to-r from-brand-rose/20 via-slate-900/95 to-brand-rose/20 border-brand-rose/40'"
-                 class="border-b px-4 py-2.5 cursor-pointer hover:brightness-110 transition-all sticky top-[76px] z-20">
-                <div class="max-w-lg mx-auto flex items-center justify-between gap-2">
-                    <div class="flex items-center gap-2 min-w-0">
-                        <span class="text-sm shrink-0">⚠️</span>
-                        <div class="min-w-0">
-                            <p class="text-[9.5px] font-black uppercase text-rose-200 truncate tracking-wide">
-                                {{ formatFleetBannerAlert(fleetUrgentItems[0]) }}
-                            </p>
-                            <p v-if="fleetUrgentCount > 1" class="text-[8px] font-bold text-rose-300/80 uppercase tracking-wider">
-                                + încă {{ fleetUrgentCount - 1 }} {{ fleetUrgentCount - 1 === 1 ? 'alertă activă' : 'alerte active' }}
-                            </p>
+            <!-- Container Sticky Unificat: Antet + Banner Alerte (previne suprapunerea pe iPhone cu notch) -->
+            <div class="sticky top-0 z-30">
+                <!-- Antet (Header) -->
+                <header class="bg-slate-950/80 backdrop-blur-xl border-b border-slate-800/80 px-5 pb-3.5 safe-top shadow-lg shadow-slate-950/50">
+                    <div class="max-w-lg mx-auto flex justify-between items-center gap-3">
+                        <div class="flex items-center gap-3 min-w-0">
+                            <div class="w-9 h-9 rounded-xl overflow-hidden border border-slate-700/70 flex items-center justify-center shadow-md shrink-0">
+                                <img src="./icon-192.png" alt="Siglă SP CREATIV" class="w-full h-full object-cover">
+                            </div>
+                            <div class="min-w-0">
+                                <h1 class="text-sm font-black text-transparent bg-clip-text bg-gradient-to-r from-brand-indigo via-violet-400 to-brand-violet italic uppercase leading-none tracking-wide">SP CREATIV</h1>
+                                <p class="text-[8.5px] font-extrabold uppercase mt-1 tracking-wider truncate" :class="!employeesLoaded ? 'text-slate-400' : isAdmin ? 'text-indigo-300' : 'text-brand-emerald'">
+                                    {{ !employeesLoaded ? 'Se încarcă...' : (isAdmin ? 'Admin' : 'Muncitor') }} • {{ (user.email || '').split('@')[0] }}
+                                </p>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-2 shrink-0">
+                            <div v-if="loading || !employeesLoaded" class="animate-spin h-3.5 w-3.5 border-2 border-brand-indigo border-t-transparent rounded-full"></div>
+                            <!-- Clopoțel Alerte Flotă & Documente (Doar Admin) -->
+                            <button v-if="isAdmin" @click="view = 'fleet'"
+                                    :class="view === 'fleet' ? 'bg-brand-indigo/25 border-brand-indigo/60 text-white shadow-md shadow-brand-indigo/20' : 'bg-slate-900/90 border-slate-700/60 text-slate-200 hover:bg-slate-800'"
+                                    class="relative p-2 rounded-xl border text-xs active:scale-90 transition-all"
+                                    title="Alerte Flotă & Documente">
+                                <span>🔔</span>
+                                <span v-if="fleetUrgentCount > 0"
+                                      class="absolute -top-1.5 -right-1.5 min-w-[1.15rem] h-[1.15rem] px-1 bg-brand-rose text-white text-[8px] font-black rounded-full flex items-center justify-center shadow-lg shadow-brand-rose/40 animate-pulse">
+                                    {{ fleetUrgentCount }}
+                                </span>
+                            </button>
+                            <button @click="handleLogout" class="text-[9px] font-black bg-slate-900/90 hover:bg-slate-800 border border-slate-700/60 px-3 py-2 rounded-xl uppercase active:scale-90 transition-all tracking-wider text-slate-300">
+                                Ieșire
+                            </button>
                         </div>
                     </div>
-                    <span class="text-[8px] font-black uppercase bg-brand-rose text-white px-2.5 py-1 rounded-lg shrink-0 tracking-wider shadow">
-                        Vezi Flota
-                    </span>
+                </header>
+
+                <!-- BANNER URGENT ALERTE FLOTĂ & DOCUMENTE (< 30 ZILE SAU EXPIRATE) -->
+                <div v-if="isAdmin && fleetUrgentCount > 0 && view !== 'fleet'"
+                     @click="view = 'fleet'"
+                     :class="fleetUrgentItems[0].daysLeft <= 0 ? 'fleet-expired-pulse bg-gradient-to-r from-brand-rose/30 via-rose-950/95 to-brand-rose/30 border-brand-rose/70' : 'bg-gradient-to-r from-brand-rose/20 via-slate-900/95 to-brand-rose/20 border-brand-rose/40'"
+                     class="border-b px-4 py-2.5 cursor-pointer hover:brightness-110 transition-all backdrop-blur-md">
+                    <div class="max-w-lg mx-auto flex items-center justify-between gap-2">
+                        <div class="flex items-center gap-2 min-w-0">
+                            <span class="text-sm shrink-0">⚠️</span>
+                            <div class="min-w-0">
+                                <p class="text-[9.5px] font-black uppercase text-rose-200 truncate tracking-wide">
+                                    {{ formatFleetBannerAlert(fleetUrgentItems[0]) }}
+                                </p>
+                                <p v-if="fleetUrgentCount > 1" class="text-[8px] font-bold text-rose-300/80 uppercase tracking-wider">
+                                    + încă {{ fleetUrgentCount - 1 }} {{ fleetUrgentCount - 1 === 1 ? 'alertă activă' : 'alerte active' }}
+                                </p>
+                            </div>
+                        </div>
+                        <span class="text-[8px] font-black uppercase bg-brand-rose text-white px-2.5 py-1 rounded-lg shrink-0 tracking-wider shadow">
+                            Vezi Flota
+                        </span>
+                    </div>
                 </div>
             </div>
 
             <main class="flex-1 p-4 pb-32 max-w-lg mx-auto w-full">
                 
                 <!-- SCHELET DE ÎNCĂRCARE (LOADING SKELETON) -->
-                <div v-if="loading && sites.length === 0" class="space-y-4 animate-pulse">
+                <div v-if="!employeesLoaded || (loading && sites.length === 0)" class="space-y-4 animate-pulse">
                     <div class="glass-panel h-48 rounded-[2.5rem] p-6 space-y-4">
                         <div class="h-4 bg-slate-800 rounded-md w-1/3"></div>
                         <div class="h-12 bg-slate-800 rounded-xl"></div>
@@ -794,8 +828,10 @@
                                             <button @click="copySpecificSettlement(item)" class="text-[8.5px] text-brand-emerald font-black uppercase hover:underline">
                                                 📋 WhatsApp
                                             </button>
-                                            <button @click="deleteSettlement(item.id)" class="text-[8.5px] text-brand-rose/60 hover:text-brand-rose font-black uppercase">
-                                                ✕ Șterge
+                                            <button @click="deleteSettlement(item.id)"
+                                                    :class="deletingSettlementId === item.id ? 'bg-brand-rose text-white px-2.5 py-1 rounded-lg text-[8.5px] font-black uppercase' : 'text-[8.5px] text-brand-rose/60 hover:text-brand-rose font-black uppercase'"
+                                                    class="active:scale-95 transition-all">
+                                                {{ deletingSettlementId === item.id ? 'Confirmi?' : '✕ Șterge' }}
                                             </button>
                                         </div>
                                     </div>
@@ -808,26 +844,92 @@
 
                         </div>
 
-                        <!-- SECȚIUNE ADMIN: LUCRĂRI & DEVIZE -->
-                        <div v-if="view === 'jobs'" class="space-y-6">
-                            <div v-for="site in activeSites" :key="site.id" class="glass-panel rounded-[2.5rem] border border-slate-800/80 overflow-hidden shadow-xl">
-                                <div class="p-5 flex justify-between items-center bg-slate-900/60 border-b border-slate-800/60 flex-wrap gap-2">
-                                    <div class="flex flex-col">
-                                        <span class="font-black uppercase text-xs tracking-wider text-slate-200">{{ site.name }}</span>
-                                        <span v-if="!site.isPaid && calculateSiteOwed(site.id) > 0" class="text-[9px] text-brand-rose font-extrabold uppercase mt-1 tracking-wider">
-                                            €{{ calculateSiteOwed(site.id).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2}) }} Rămas de Încasat
-                                        </span>
+                        <!-- SECȚIUNE ADMIN: LUCRĂRI & DEVIZE (CARDURI PLIABILE + FILTRE) -->
+                        <div v-if="view === 'jobs'" class="space-y-4">
+                            <!-- Bară Filtre Rapide Lucrări -->
+                            <div class="flex items-center gap-1.5 flex-wrap">
+                                <div class="flex-1 flex p-1 bg-slate-900/90 border border-slate-800/80 rounded-2xl shadow-md">
+                                    <button type="button" @click="jobsFilter = 'all'"
+                                            :class="jobsFilter === 'all' ? 'bg-gradient-to-r from-brand-indigo to-brand-violet text-white shadow' : 'text-slate-400'"
+                                            class="flex-1 py-2 text-[8.5px] font-black uppercase rounded-xl transition-all">
+                                        Toate ({{ activeSites.length }})
+                                    </button>
+                                    <button type="button" @click="jobsFilter = 'open'"
+                                            :class="jobsFilter === 'open' ? 'bg-brand-amber text-slate-950 shadow' : 'text-slate-400'"
+                                            class="flex-1 py-2 text-[8.5px] font-black uppercase rounded-xl transition-all">
+                                        În lucru
+                                    </button>
+                                    <button type="button" @click="jobsFilter = 'paid'"
+                                            :class="jobsFilter === 'paid' ? 'bg-brand-emerald text-slate-950 shadow' : 'text-slate-400'"
+                                            class="flex-1 py-2 text-[8.5px] font-black uppercase rounded-xl transition-all">
+                                        Finalizate
+                                    </button>
+                                    <button v-if="jobsWithExtrasCount > 0" type="button" @click="jobsFilter = 'extra'"
+                                            :class="jobsFilter === 'extra' ? 'bg-brand-amber text-slate-950 shadow' : 'text-amber-300'"
+                                            class="flex-1 py-2 text-[8.5px] font-black uppercase rounded-xl transition-all">
+                                        ⚡ Extra ({{ jobsWithExtrasCount }})
+                                    </button>
+                                </div>
+                                <button type="button" @click="toggleAllJobSites"
+                                        class="px-3 py-2.5 rounded-2xl bg-slate-900/90 hover:bg-slate-800 border border-slate-800 text-[8.5px] font-black uppercase text-slate-300 active:scale-95 transition-all shrink-0"
+                                        title="Extinde sau restrânge toate șantierele">
+                                    {{ areAllJobSitesExpanded ? '▲ Restrânge' : '▼ Extinde' }}
+                                </button>
+                            </div>
+
+                            <div v-for="site in filteredJobSites" :key="site.id" class="glass-panel rounded-3xl overflow-hidden shadow-xl transition-all">
+                                <!-- Antet Pliabil Card Șantier -->
+                                <div @click="toggleJobSite(site.id)"
+                                     class="p-4 sm:p-5 bg-slate-900/60 hover:bg-slate-900/80 cursor-pointer transition-colors space-y-2.5">
+                                    <div class="flex justify-between items-start gap-2">
+                                        <div class="flex flex-col min-w-0">
+                                            <div class="flex items-center gap-1.5 flex-wrap">
+                                                <span class="w-2 h-2 rounded-full shrink-0" :class="site.isPaid ? 'bg-brand-emerald shadow-[0_0_8px_rgba(16,185,129,0.7)]' : 'bg-brand-amber'"></span>
+                                                <span class="font-black uppercase text-xs tracking-wider text-slate-100 truncate">{{ site.name }}</span>
+                                                <span v-if="getSiteUnsentExtras(site).length > 0"
+                                                      class="text-[7.5px] font-black uppercase px-1.5 py-0.5 rounded-md bg-brand-amber/20 text-amber-200 border border-brand-amber/40">
+                                                    ⚡ {{ getSiteUnsentExtras(site).length }} Extra
+                                                </span>
+                                            </div>
+                                            <div class="flex items-center gap-2 mt-1 flex-wrap text-[8.5px] font-bold">
+                                                <span class="text-slate-400">{{ getAllTimeSiteHours(site.id) }}h • {{ (site.pricingItems || []).length }} art.</span>
+                                                <span v-if="!site.isPaid && calculateSiteOwed(site.id) > 0" class="text-brand-rose font-extrabold">
+                                                    • Rest: €{{ calculateSiteOwed(site.id).toLocaleString(undefined, {maximumFractionDigits: 0}) }}
+                                                </span>
+                                            </div>
+                                        </div>
+
+                                        <div class="flex items-center gap-2 shrink-0">
+                                            <div class="text-right">
+                                                <span class="text-sm font-black block" :class="site.isPaid ? 'text-brand-emerald' : 'text-transparent bg-clip-text bg-gradient-to-r from-brand-indigo to-brand-violet'">
+                                                    €{{ calculateSitePaid(site.id).toLocaleString(undefined, {minimumFractionDigits: 0, maximumFractionDigits: 2}) }}
+                                                </span>
+                                                <span v-if="calculateSiteTotal(site.id) > 0" class="text-[8px] text-slate-400 font-bold block">
+                                                    din €{{ calculateSiteTotal(site.id).toLocaleString(undefined, {maximumFractionDigits: 0}) }}
+                                                </span>
+                                            </div>
+                                            <button v-if="hasSiteLocation(site)" type="button" @click.stop="openInWaze(site)"
+                                                    class="p-2 rounded-xl bg-sky-500/15 hover:bg-sky-500/25 text-sky-300 border border-sky-500/30 text-xs active:scale-90 transition-all"
+                                                    title="Navighează rapid cu Waze">
+                                                🚗
+                                            </button>
+                                            <span class="w-7 h-7 rounded-xl bg-slate-800/80 border border-slate-700/60 flex items-center justify-center text-[10px] text-slate-300 transition-transform"
+                                                  :class="expandedJobSites[site.id] ? 'rotate-180 bg-brand-indigo/20 text-indigo-200 border-brand-indigo/40' : ''">
+                                                ▼
+                                            </span>
+                                        </div>
                                     </div>
-                                    <div class="text-right">
-                                        <span class="text-sm font-black text-transparent bg-clip-text bg-gradient-to-r from-brand-indigo to-brand-violet block">
-                                            €{{ calculateSitePaid(site.id).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2}) }} Încasat
-                                        </span>
-                                        <span v-if="calculateSiteOwed(site.id) > 0" class="text-[8.5px] text-slate-500 font-extrabold block uppercase mt-0.5 tracking-wider">
-                                            din total contract de €{{ calculateSiteTotal(site.id).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2}) }}
-                                        </span>
+
+                                    <!-- Bară Progres Încasare Șantier -->
+                                    <div v-if="calculateSiteTotal(site.id) > 0" class="w-full bg-slate-950/80 rounded-full h-1.5 overflow-hidden">
+                                        <div class="h-1.5 rounded-full transition-all duration-300"
+                                             :class="site.isPaid ? 'bg-brand-emerald' : 'bg-gradient-to-r from-brand-indigo to-brand-violet'"
+                                             :style="{ width: getSitePaidPercent(site) + '%' }"></div>
                                     </div>
                                 </div>
-                                <div class="p-5 space-y-4">
+
+                                <!-- Conținut Extins Șantier -->
+                                <div v-if="expandedJobSites[site.id]" class="p-5 space-y-4 border-t border-slate-800/60">
                                     <!-- Buton cu Confirmare Sigură pentru a nu marca din greșeală -->
                                     <button @click="requestTogglePaid(site)" 
                                             :class="site.isPaid ? 'bg-brand-emerald/10 text-brand-emerald border-brand-emerald/20' : 'bg-brand-amber/10 text-brand-amber border-brand-amber/20'" 
@@ -943,7 +1045,11 @@
                                                     <!-- Buton Editează Articol -->
                                                     <button @click="openEditSiteItem(site.id, item)" class="text-slate-400 hover:text-brand-indigo transition-colors p-1.5 text-xs" title="Modifică lucrare">✏️</button>
                                                     <!-- Buton Șterge Articol -->
-                                                    <button @click="removeItemFromSite(site.id, item.id)" class="text-brand-rose/40 hover:text-brand-rose transition-colors p-1.5 text-xs" title="Șterge lucrare">✕</button>
+                                                    <button @click="removeItemFromSite(site.id, item.id)"
+                                                            :class="deletingSiteItemKey === (site.id + ':' + item.id) ? 'bg-brand-rose text-white px-2 py-1 rounded-lg text-[8px] font-black uppercase' : 'text-brand-rose/40 hover:text-brand-rose p-1.5 text-xs'"
+                                                            class="transition-all active:scale-95" title="Șterge lucrare">
+                                                        {{ deletingSiteItemKey === (site.id + ':' + item.id) ? 'Confirmi?' : '✕' }}
+                                                    </button>
                                                 </div>
                                             </div>
                                             <!-- Selector Stadiu Încasat (doar dacă are preț) -->
@@ -1041,6 +1147,10 @@
                                         </button>
                                     </div>
                                 </div>
+                            </div>
+
+                            <div v-if="filteredJobSites.length === 0" class="glass-panel rounded-3xl p-8 text-center text-slate-400 text-xs font-bold">
+                                Niciun șantier găsit în acest filtru.
                             </div>
                         </div>
 
@@ -2391,61 +2501,65 @@
             <!-- ========================================== -->
 
             <!-- BARĂ NAVIGARE ADMINISTRATOR -->
-            <nav v-if="isAdmin" class="fixed bottom-0 left-0 right-0 bg-slate-950/90 backdrop-blur-xl border-t border-slate-800/80 px-2 sm:px-4 py-3 pb-8 flex justify-around safe-bottom z-40 shadow-2xl">
-                <!-- Pontaj (Log) -->
-                <button @click="view = 'log'" :class="{ 'active-nav': view === 'log' }" class="text-slate-500 hover:text-slate-300 transition-all flex flex-col items-center relative py-1">
-                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M17.414 2.586a2 2 0 00-2.828 0L7 10.172V13h2.828l7.586-7.586a2 2 0 000-2.828z"></path><path fill-rule="evenodd" d="M2 6a2 2 0 012-2h4a1 1 0 010 2H4v10h10v-4a1 1 0 112 0v4a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" clip-rule="evenodd"></path></svg>
-                    <span class="text-[7.5px] font-black uppercase mt-1 tracking-wider">Pontaj</span>
-                </button>
+            <nav v-if="employeesLoaded && isAdmin" class="fixed bottom-0 left-0 right-0 bg-slate-950/92 backdrop-blur-xl border-t border-slate-800/80 px-2 pt-2.5 pb-4 safe-bottom z-40 shadow-2xl">
+                <div class="max-w-lg mx-auto grid grid-cols-6 gap-1">
+                    <!-- Pontaj (Log) -->
+                    <button @click="view = 'log'" :class="{ 'active-nav': view === 'log' }" class="text-slate-400 hover:text-slate-200 transition-all flex flex-col items-center justify-center py-1.5 px-1 rounded-2xl border border-transparent">
+                        <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M17.414 2.586a2 2 0 00-2.828 0L7 10.172V13h2.828l7.586-7.586a2 2 0 000-2.828z"></path><path fill-rule="evenodd" d="M2 6a2 2 0 012-2h4a1 1 0 010 2H4v10h10v-4a1 1 0 112 0v4a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" clip-rule="evenodd"></path></svg>
+                        <span class="text-[7.5px] font-black uppercase mt-1 tracking-wide">Pontaj</span>
+                    </button>
 
-                <!-- Lucrări (Jobs) -->
-                <button @click="view = 'jobs'" :class="{ 'active-nav': view === 'jobs' }" class="text-slate-500 hover:text-slate-300 transition-all flex flex-col items-center relative py-1">
-                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M4 4a2 2 0 00-2 2v1h16V6a2 2 0 00-2-2H4z"></path><path fill-rule="evenodd" d="M18 9H2v5a2 2 0 002 2h12a2 2 0 002-2V9zM4 13a1 1 0 011-1h1a1 1 0 110 2H5a1 1 0 01-1-1zm5-1a1 1 0 100 2h1a1 1 0 100-2H9z" clip-rule="evenodd"></path></svg>
-                    <span class="text-[7.5px] font-black uppercase mt-1 tracking-wider">Lucrări</span>
-                </button>
+                    <!-- Lucrări (Jobs) -->
+                    <button @click="view = 'jobs'" :class="{ 'active-nav': view === 'jobs' }" class="text-slate-400 hover:text-slate-200 transition-all flex flex-col items-center justify-center py-1.5 px-1 rounded-2xl border border-transparent">
+                        <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M4 4a2 2 0 00-2 2v1h16V6a2 2 0 00-2-2H4z"></path><path fill-rule="evenodd" d="M18 9H2v5a2 2 0 002 2h12a2 2 0 002-2V9zM4 13a1 1 0 011-1h1a1 1 0 110 2H5a1 1 0 01-1-1zm5-1a1 1 0 100 2h1a1 1 0 100-2H9z" clip-rule="evenodd"></path></svg>
+                        <span class="text-[7.5px] font-black uppercase mt-1 tracking-wide">Lucrări</span>
+                    </button>
 
-                <!-- Decont & Minusuri -->
-                <button @click="view = 'settlement'" :class="{ 'active-nav': view === 'settlement' }" class="text-slate-500 hover:text-slate-300 transition-all flex flex-col items-center relative py-1">
-                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                        <path d="M4 4a2 2 0 00-2 2v1h16V6a2 2 0 00-2-2H4z"/>
-                        <path fill-rule="evenodd" d="M18 9H2v5a2 2 0 002 2h12a2 2 0 002-2V9zM8 12a1 1 0 011-1h2a1 1 0 110 2H9a1 1 0 01-1-1z" clip-rule="evenodd"/>
-                    </svg>
-                    <span class="text-[7.5px] font-black uppercase mt-1 tracking-wider text-brand-indigo">Decont</span>
-                </button>
+                    <!-- Decont & Minusuri -->
+                    <button @click="view = 'settlement'" :class="{ 'active-nav': view === 'settlement' }" class="text-slate-400 hover:text-slate-200 transition-all flex flex-col items-center justify-center py-1.5 px-1 rounded-2xl border border-transparent">
+                        <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M4 4a2 2 0 00-2 2v1h16V6a2 2 0 00-2-2H4z"/>
+                            <path fill-rule="evenodd" d="M18 9H2v5a2 2 0 002 2h12a2 2 0 002-2V9zM8 12a1 1 0 011-1h2a1 1 0 110 2H9a1 1 0 01-1-1z" clip-rule="evenodd"/>
+                        </svg>
+                        <span class="text-[7.5px] font-black uppercase mt-1 tracking-wide">Decont</span>
+                    </button>
 
-                <!-- Statistici (Stats) -->
-                <button @click="view = 'stats'" :class="{ 'active-nav': view === 'stats' }" class="text-slate-500 hover:text-slate-300 transition-all flex flex-col items-center relative py-1">
-                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M2 11a1 1 0 011-1h2a1 1 0 011 1v5a1 1 0 01-1 1H3a1 1 0 01-1-1v-5zM8 7a1 1 0 011-1h2a1 1 0 011 1v9a1 1 0 01-1 1H9a1 1 0 01-1-1V7zM14 4a1 1 0 011-1h2a1 1 0 011 1v12a1 1 0 01-1 1h-2a1 1 0 01-1-1V4z"></path></svg>
-                    <span class="text-[7.5px] font-black uppercase mt-1 tracking-wider">Statistici</span>
-                </button>
+                    <!-- Statistici (Stats) -->
+                    <button @click="view = 'stats'" :class="{ 'active-nav': view === 'stats' }" class="text-slate-400 hover:text-slate-200 transition-all flex flex-col items-center justify-center py-1.5 px-1 rounded-2xl border border-transparent">
+                        <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M2 11a1 1 0 011-1h2a1 1 0 011 1v5a1 1 0 01-1 1H3a1 1 0 01-1-1v-5zM8 7a1 1 0 011-1h2a1 1 0 011 1v9a1 1 0 01-1 1H9a1 1 0 01-1-1V7zM14 4a1 1 0 011-1h2a1 1 0 011 1v12a1 1 0 01-1 1h-2a1 1 0 01-1-1V4z"></path></svg>
+                        <span class="text-[7.5px] font-black uppercase mt-1 tracking-wide">Statistici</span>
+                    </button>
 
-                <!-- Istoric (History) -->
-                <button @click="view = 'history'" :class="{ 'active-nav': view === 'history' }" class="text-slate-500 hover:text-slate-300 transition-all flex flex-col items-center relative py-1">
-                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd"></path></svg>
-                    <span class="text-[7.5px] font-black uppercase mt-1 tracking-wider">Istoric</span>
-                </button>
+                    <!-- Istoric (History) -->
+                    <button @click="view = 'history'" :class="{ 'active-nav': view === 'history' }" class="text-slate-400 hover:text-slate-200 transition-all flex flex-col items-center justify-center py-1.5 px-1 rounded-2xl border border-transparent">
+                        <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd"></path></svg>
+                        <span class="text-[7.5px] font-black uppercase mt-1 tracking-wide">Istoric</span>
+                    </button>
 
-                <!-- Setări (Setup) -->
-                <button @click="view = 'setup'" :class="{ 'active-nav': view === 'setup' }" class="text-slate-500 hover:text-slate-300 transition-all flex flex-col items-center relative py-1">
-                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.533 1.533 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.533 1.533 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd"></path></svg>
-                    <span class="text-[7.5px] font-black uppercase mt-1 tracking-wider">Setări</span>
-                </button>
+                    <!-- Setări (Setup) -->
+                    <button @click="view = 'setup'" :class="{ 'active-nav': view === 'setup' }" class="text-slate-400 hover:text-slate-200 transition-all flex flex-col items-center justify-center py-1.5 px-1 rounded-2xl border border-transparent">
+                        <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.533 1.533 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.533 1.533 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd"></path></svg>
+                        <span class="text-[7.5px] font-black uppercase mt-1 tracking-wide">Setări</span>
+                    </button>
+                </div>
             </nav>
 
             <!-- BARĂ NAVIGARE MUNCITOR -->
-            <nav v-else class="fixed bottom-0 left-0 right-0 bg-slate-950/90 backdrop-blur-xl border-t border-slate-800/80 px-6 py-4 pb-8 flex justify-around safe-bottom z-40 shadow-2xl">
-                <button @click="view = 'my_sites'" :class="{ 'active-nav': view === 'my_sites' }" class="text-slate-500 hover:text-slate-300 transition-all flex flex-col items-center w-24">
-                    <svg class="w-5.5 h-5.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd"></path></svg>
-                    <span class="text-[8px] font-black uppercase mt-1 tracking-wider">Șantiere</span>
-                </button>
-                <button @click="view = 'my_stats'" :class="{ 'active-nav': view === 'my_stats' }" class="text-slate-500 hover:text-slate-300 transition-all flex flex-col items-center w-24">
-                    <svg class="w-5.5 h-5.5" fill="currentColor" viewBox="0 0 20 20"><path d="M2 11a1 1 0 011-1h2a1 1 0 011 1v5a1 1 0 01-1 1H3a1 1 0 01-1-1v-5zM8 7a1 1 0 011-1h2a1 1 0 011 1v9a1 1 0 01-1 1H9a1 1 0 01-1-1V7zM14 4a1 1 0 011-1h2a1 1 0 011 1v12a1 1 0 01-1 1h-2a1 1 0 01-1-1V4z"></path></svg>
-                    <span class="text-[8px] font-black uppercase mt-1 tracking-wider">Orele Mele</span>
-                </button>
-                <button @click="view = 'my_history'" :class="{ 'active-nav': view === 'my_history' }" class="text-slate-500 hover:text-slate-300 transition-all flex flex-col items-center w-24">
-                    <svg class="w-5.5 h-5.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd"></path></svg>
-                    <span class="text-[8px] font-black uppercase mt-1 tracking-wider">Istoric</span>
-                </button>
+            <nav v-else-if="employeesLoaded" class="fixed bottom-0 left-0 right-0 bg-slate-950/92 backdrop-blur-xl border-t border-slate-800/80 px-4 pt-2.5 pb-4 safe-bottom z-40 shadow-2xl">
+                <div class="max-w-lg mx-auto grid grid-cols-3 gap-2">
+                    <button @click="view = 'my_sites'" :class="{ 'active-nav': view === 'my_sites' }" class="text-slate-400 hover:text-slate-200 transition-all flex flex-col items-center justify-center py-1.5 px-2 rounded-2xl border border-transparent">
+                        <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd"></path></svg>
+                        <span class="text-[8px] font-black uppercase mt-1 tracking-wide">Șantiere</span>
+                    </button>
+                    <button @click="view = 'my_stats'" :class="{ 'active-nav': view === 'my_stats' }" class="text-slate-400 hover:text-slate-200 transition-all flex flex-col items-center justify-center py-1.5 px-2 rounded-2xl border border-transparent">
+                        <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M2 11a1 1 0 011-1h2a1 1 0 011 1v5a1 1 0 01-1 1H3a1 1 0 01-1-1v-5zM8 7a1 1 0 011-1h2a1 1 0 011 1v9a1 1 0 01-1 1H9a1 1 0 01-1-1V7zM14 4a1 1 0 011-1h2a1 1 0 011 1v12a1 1 0 01-1 1h-2a1 1 0 01-1-1V4z"></path></svg>
+                        <span class="text-[8px] font-black uppercase mt-1 tracking-wide">Orele Mele</span>
+                    </button>
+                    <button @click="view = 'my_history'" :class="{ 'active-nav': view === 'my_history' }" class="text-slate-400 hover:text-slate-200 transition-all flex flex-col items-center justify-center py-1.5 px-2 rounded-2xl border border-transparent">
+                        <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd"></path></svg>
+                        <span class="text-[8px] font-black uppercase mt-1 tracking-wide">Istoric</span>
+                    </button>
+                </div>
             </nav>
         </template>
 
@@ -2523,9 +2637,11 @@
                     { label: '🔧 Revizie Ulei', vehicle: 'Mercedes Vito 1', type: 'Revizie Ulei & Filtre', defaultMonths: 6 }
                 ];
                 
-                // Modele formular Pontaj
+                // Modele formular Pontaj (dată locală sigură, fără decalaj UTC)
+                const initLocalNow = new Date();
+                const initTodayStr = `${initLocalNow.getFullYear()}-${String(initLocalNow.getMonth() + 1).padStart(2, '0')}-${String(initLocalNow.getDate()).padStart(2, '0')}`;
                 const form = ref({ 
-                    date: new Date().toISOString().split('T')[0], 
+                    date: initTodayStr, 
                     hours: 8, 
                     siteId: '', 
                     selected: [] 
@@ -2586,12 +2702,15 @@
                 const payrollStatus = ref([]);
                 const historyFilters = reactive({ eid: '', sid: '' });
 
-                // Stări de confirmare la ștergere
+                // Stări de confirmare la ștergere & sincronizare rol
+                const employeesLoaded = ref(false);
                 const deletingLogId = ref(null);
                 const deletingSiteId = ref(null);
                 const permanentDeletingSiteId = ref(null);
                 const deletingEmpId = ref(null);
                 const permanentDeletingEmpId = ref(null);
+                const deletingSettlementId = ref(null);
+                const deletingSiteItemKey = ref(null);
 
                 // Filtru temporal
                 const statTimeframe = ref('Month');
@@ -2733,11 +2852,16 @@
                             if (e.email) empEmails[e.id] = e.email;
                             if (empRates[e.id] === undefined) empRates[e.id] = parseFloat(e.rate) || 0;
                         });
-                        if (!settleForm.eid && employees.value.length > 0) {
-                            settleForm.eid = employees.value[0].id;
-                            settleForm.rate = getEmpRateForDate(employees.value[0], settleForm.month);
+                        const firstActiveEmp = employees.value.find(e => !e.isArchived) || employees.value[0];
+                        if (!settleForm.eid && firstActiveEmp) {
+                            settleForm.eid = firstActiveEmp.id;
+                            settleForm.rate = getEmpRateForDate(firstActiveEmp, settleForm.month);
                         }
-                    }, (err) => console.warn("Eroare snapshot muncitori:", err));
+                        employeesLoaded.value = true;
+                    }, (err) => {
+                        console.warn("Eroare snapshot muncitori:", err);
+                        employeesLoaded.value = true;
+                    });
                     activeUnsubs.push(unsubEmployees);
 
                     const unsubLogs = fsOnSnapshot(fsCollection(db, 'artifacts', appId, 'public', 'data', 'logs'), (snap) => {
@@ -2765,9 +2889,12 @@
                     onAuthStateChanged(auth, (u) => {
                         user.value = u;
                         if(u) {
+                            employeesLoaded.value = false;
+                            loading.value = true;
                             startSync();
                         } else {
                             stopSync();
+                            employeesLoaded.value = false;
                             sites.value = [];
                             employees.value = [];
                             logs.value = [];
@@ -2802,7 +2929,7 @@
                     return employees.value.find(e => e.email && e.email.toLowerCase().trim() === uEmail);
                 });
 
-                const isAdmin = computed(() => !currentUserEmployee.value);
+                const isAdmin = computed(() => employeesLoaded.value && !currentUserEmployee.value);
                 
                 const showArchived = ref(false);
                 const activeSites = computed(() => sortedSites.value.filter(s => !s.isArchived));
@@ -2810,11 +2937,12 @@
                 const archivedSites = computed(() => sortedSites.value.filter(s => !!s.isArchived));
                 const archivedEmployees = computed(() => employees.value.filter(e => !!e.isArchived));
 
-                watch(isAdmin, (adminStatus) => {
+                watch([employeesLoaded, isAdmin], ([loaded, adminStatus]) => {
+                    if (!loaded) return;
                     if (adminStatus) {
-                        view.value = 'log';
+                        if (view.value.startsWith('my_')) view.value = 'log';
                     } else {
-                        view.value = 'my_stats';
+                        if (!view.value.startsWith('my_')) view.value = 'my_stats';
                     }
                 });
 
@@ -3291,7 +3419,13 @@
 
                 const deleteSettlement = async (id) => {
                     if (!user.value || !isAdmin.value) return;
+                    if (deletingSettlementId.value !== id) {
+                        deletingSettlementId.value = id;
+                        setTimeout(() => { if (deletingSettlementId.value === id) deletingSettlementId.value = null; }, 3000);
+                        return;
+                    }
                     await fsDeleteDoc(fsDoc(db, 'artifacts', appId, 'public', 'data', 'settlements', id));
+                    deletingSettlementId.value = null;
                     showToast('🗑️ Decont șters din istoric');
                 };
 
@@ -3570,6 +3704,45 @@
                 };
 
                 const quickUnitOptions = ['m2', 'ore', 'buc', 'ml', 'forfet'];
+                const jobsFilter = ref('all');
+                const expandedJobSites = reactive({});
+
+                const toggleJobSite = (sid) => {
+                    expandedJobSites[sid] = !expandedJobSites[sid];
+                };
+
+                const getSitePaidPercent = (site) => {
+                    if (!site) return 0;
+                    if (site.isPaid) return 100;
+                    const tot = calculateSiteTotal(site.id);
+                    if (tot <= 0) return 0;
+                    return Math.min(100, Math.round((calculateSitePaid(site.id) / tot) * 100));
+                };
+
+                const jobsWithExtrasCount = computed(() => {
+                    return activeSites.value.filter(s => getSiteExtras(s).length > 0).length;
+                });
+
+                const filteredJobSites = computed(() => {
+                    return activeSites.value.filter(s => {
+                        if (jobsFilter.value === 'open') return !s.isPaid;
+                        if (jobsFilter.value === 'paid') return !!s.isPaid;
+                        if (jobsFilter.value === 'extra') return getSiteExtras(s).length > 0;
+                        return true;
+                    });
+                });
+
+                const areAllJobSitesExpanded = computed(() => {
+                    if (filteredJobSites.value.length === 0) return false;
+                    return filteredJobSites.value.every(s => !!expandedJobSites[s.id]);
+                });
+
+                const toggleAllJobSites = () => {
+                    const nextState = !areAllJobSitesExpanded.value;
+                    filteredJobSites.value.forEach(s => {
+                        expandedJobSites[s.id] = nextState;
+                    });
+                };
 
                 const setPriceFormMode = (sid, mode) => {
                     if (!priceForm[sid]) return;
@@ -4127,9 +4300,17 @@
 
                 const removeItemFromSite = async (sid, iid) => {
                     if (!user.value || !isAdmin.value) return;
+                    const key = `${sid}:${iid}`;
+                    if (deletingSiteItemKey.value !== key) {
+                        deletingSiteItemKey.value = key;
+                        setTimeout(() => { if (deletingSiteItemKey.value === key) deletingSiteItemKey.value = null; }, 3000);
+                        return;
+                    }
                     const s = sites.value.find(x => x.id === sid);
-                    const items = s.pricingItems.filter(i => i.id !== iid);
+                    if (!s) return;
+                    const items = (s.pricingItems || []).filter(i => i.id !== iid);
                     await fsUpdateDoc(fsDoc(db, 'artifacts', appId, 'public', 'data', 'sites', sid), { pricingItems: items });
+                    deletingSiteItemKey.value = null;
                     showToast('🗑️ Lucrare ștearsă din deviz');
                 };
 
@@ -4572,8 +4753,8 @@
 
                 const getSelectedMonthStr = computed(() => {
                     const now = new Date();
-                    now.setMonth(now.getMonth() + timeOffset.value);
-                    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+                    const d = new Date(now.getFullYear(), now.getMonth() + timeOffset.value, 1);
+                    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
                 });
 
                 const isSelectedMonthPaid = computed(() => {
@@ -5091,7 +5272,7 @@
                 return { 
                     user, authForm, authLoading, authError, handleLogin, handleLogout, view, sites, employees, logs, form, news, priceForm, loading, toastMessage,
                     statTimeframe, timeOffset, currentTimeLabel, isAdmin, empEmails, empRates, selectedMonth, formatMonth,
-                    activeSites, activeEmployees, archivedSites, archivedEmployees, showArchived, historyFilters, deletingLogId, deletingSiteId, permanentDeletingSiteId, deletingEmpId, permanentDeletingEmpId,
+                    activeSites, activeEmployees, archivedSites, archivedEmployees, showArchived, employeesLoaded, historyFilters, deletingLogId, deletingSiteId, permanentDeletingSiteId, deletingEmpId, permanentDeletingEmpId, deletingSettlementId, deletingSiteItemKey,
                     toggleEmp, saveLabor, deleteLog, addItemToSite, removeItemFromSite, togglePaid, addSite, addEmp, linkEmpEmail, unlinkEmpEmail, archiveSite, archiveEmp, restoreSite, restoreEmp, getSiteLogCount, canPermanentlyDeleteSite, permanentlyDeleteSite, getEmpLogCount, getEmpAllTimeHours, getEmpSettlementCount, canPermanentlyDeleteEmp, permanentlyDeleteEmp, updateEmpRate, updateItemPaymentPercent,
                     calculateSiteTotal, calculateSitePaid, calculateSiteOwed, getSiteHours, getSiteHoursPercentage, getTodayHours, getSelectedDateEmpHours,
                     getAllTimeSiteHours, calculateSiteYield,
@@ -5107,7 +5288,8 @@
                     getEmpRateForDate, raisingEmp, raisingEmpHistory, openEmpRaiseModal, closeEmpRaiseModal, setRaiseDatePreset, saveEmpRaise, deleteEmpRaiseEntry,
 
                     // Lucrări Rapide, Extra / Regie & Lipire din Factură
-                    quickUnitOptions, setPriceFormMode, setPriceFormUnit, fillRegieSiteHours,
+                    quickUnitOptions, jobsFilter, expandedJobSites, toggleJobSite, getSitePaidPercent, jobsWithExtrasCount, filteredJobSites, areAllJobSitesExpanded, toggleAllJobSites,
+                    setPriceFormMode, setPriceFormUnit, fillRegieSiteHours,
                     getSiteExtras, getSiteUnsentExtras, toggleExtraSent, markAllExtrasSent, copySiteExtrasForManager,
                     invoicePasteModal, openInvoicePasteModal, closeInvoicePasteModal, parseInvoiceText, addEmptyInvoiceRow, removeInvoiceRow, saveParsedInvoiceItems,
 
